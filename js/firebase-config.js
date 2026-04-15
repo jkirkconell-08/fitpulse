@@ -1,22 +1,13 @@
 /* =========================================================
    FitPulse - Firebase Configuration
-   
-   INSTRUCCIONES:
-   1. Ve a https://console.firebase.google.com
-   2. Crea un proyecto nuevo llamado "FitPulse"
-   3. En Authentication → Sign-in method, habilita "Google"
-   4. En Firestore Database, crea una base de datos (modo de prueba)
-   5. En Project Settings → General, busca "Your apps" → Web app
-   6. Copia los valores de firebaseConfig y reemplaza los de abajo
    ========================================================= */
 
 const FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "TU_APP_ID_AQUI"
+  apiKey: "AIzaSyCB3Uckq0vWdlqT3ZhFkVTtAPdpsgGAZTg",
+  authDomain: "fitpulse-42899.firebaseapp.com",
+  projectId: "fitpulse-42899",
+  storageBucket: "fitpulse-42899.firebasestorage.app",
+  messagingSenderId: "316462204091",
+  appId: "1:316462204091:web:cb5202d7c6ae809217d59e",
+  measurementId: "G-K2VGVZC9XL"
 };
-
-// Firebase will be initialized in auth.js after SDK loads
