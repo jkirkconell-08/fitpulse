@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6C3CE1">
+  <title>FitPulse - Configuración Inicial</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .onboard-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .onboard-step { display: none; flex-direction: column; flex: 1; }
+    .onboard-step.active { display: flex; }
+    .onboard-emoji { font-size: 3rem; margin-bottom: 16px; }
+    .onboard-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+    .onboard-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 24px; }
+    .onboard-fields { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+    .onboard-field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .onboard-field input, .onboard-field select {
+      width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-input); color: var(--text-primary); font-family: inherit; font-size: 1rem; outline: none;
+    }
+    .onboard-field input:focus, .onboard-field select:focus { border-color: #6C3CE1; }
+    .onboard-btns { display: flex; gap: 10px; margin-top: 24px; padding-bottom: 20px; }
+    .onboard-btns .btn { flex: 1; padding: 14px; }
+    .btn-accent { background: linear-gradient(135deg, #6C3CE1, #8B5CF6); color: #fff; }
+    .btn-accent:hover { box-shadow: 0 4px 15px rgba(108,60,225,0.3); }
+    .onboard-progress { display: flex; gap: 6px; margin-bottom: 24px; }
+    .onboard-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); }
+    .onboard-dot.done { background: #6C3CE1; }
+    .onboard-dot.current { background: #8B5CF6; }
+    .dias-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dia-btn {
+      width: 48px; height: 48px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+      background: var(--bg-input); color: var(--text-secondary); font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    }
+    .dia-btn.selected { background: #6C3CE1; border-color: #6C3CE1; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="onboard-page">
+    <!-- Progress -->
+    <div class="onboard-progress" id="progress-dots"></div>
+
+    <!-- Step 1: Nombre -->
+    <div class="onboard-step active" id="step-1">
+      <div class="onboard-emoji">👋</div>
+      <h1 class="onboard-title">¡Bienvenido a FitPulse!</h1>
+      <p class="onboard-desc">Vamos a configurar tu perfil en unos segundos.</p>
+      <div class="onboard-fields">
+        <div class="onboard-field">
+          <label>¿Cómo te llamas?</label>
+          <input type="text" id="ob-nombre" placeholder="Tu nombre" autofocus>
+        </div>
+      </div>
+      <div class="onboard-btns">
+        <button class="btn btn-accent btn-full" onclick="Onboarding.next()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Peso -->
+    <div class="onboard-step" id="step-2">
+      <div class="onboard-emoji">⚖️</div>
+      <h1 class="onboard-title">Tu peso actual</h1>
+      <p class="onboard-desc">Necesitamos tu peso actual y tu meta para calcular tu progreso.</p>
+      <div class="onboard-fields">
+        <div class="onboard-field">
+          <label>Peso actual (kg)</label>
+          <input type="number" id="ob-peso" step="0.1" placeholder="Ej: 85.5">
+        </div>
+        <div class="onboard-field">
+          <label>Meta de peso (kg)</label>
+          <input type="number" id="ob-meta" step="0.1" placeholder="Ej: 75.0">
+        </div>
+        <div class="onboard-field">
+          <label>Meta calórica diaria (kcal)</label>
+          <input type="number" id="ob-cal" step="50" value="2200" placeholder="2200">
+        </div>
+      </div>
+      <div class="onboard-btns">
+        <button class="btn btn-secondary" onclick="Onboarding.prev()">← Atrás</button>
+        <button class="btn btn-accent" onclick="Onboarding.next()">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Gym -->
+    <div class="onboard-step" id="step-3">
+      <div class="onboard-emoji">🏋️</div>
+      <h1 class="onboard-title">Tu rutina de gym</h1>
+      <p class="onboard-desc">¿Qué días vas al gimnasio?</p>
+      <div class="onboard-fields">
+        <div class="onboard-field">
+          <label>Días de entrenamiento</label>
+          <div class="dias-grid" id="dias-grid"></div>
+        </div>
+        <div class="onboard-field">
+          <label>Hora de inicio del gym</label>
+          <input type="time" id="ob-hora-gym" value="06:00">
+        </div>
+      </div>
+      <div class="onboard-btns">
+        <button class="btn btn-secondary" onclick="Onboarding.prev()">← Atrás</button>
+        <button class="btn btn-accent" onclick="Onboarding.finish()">¡Empezar! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const Onboarding = {
+      step: 1,
+      totalSteps: 3,
+      selectedDias: [1, 2, 3, 4, 5],
+
+      init() {
+        initDarkMode();
+        this._renderProgress();
+        this._renderDias();
+
+        // Pre-fill from auth
+        const user = Auth.getUser();
+        if (user && user.name && user.name !== 'Usuario') {
+          document.getElementById('ob-nombre').value = user.name;
+        }
+      },
+
+      _renderProgress() {
+        const el = document.getElementById('progress-dots');
+        el.innerHTML = '';
+        for (let i = 1; i <= this.totalSteps; i++) {
+          const dot = document.createElement('div');
+          dot.className = `onboard-dot ${i < this.step ? 'done' : ''} ${i === this.step ? 'current' : ''}`;
+          el.appendChild(dot);
+        }
+      },
+
+      _renderDias() {
+        const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const grid = document.getElementById('dias-grid');
+        grid.innerHTML = DIAS.map((d, i) => 
+          `<button class="dia-btn ${this.selectedDias.includes(i) ? 'selected' : ''}" data-dia="${i}">${d}</button>`
+        ).join('');
+
+        grid.querySelectorAll('.dia-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const dia = parseInt(btn.dataset.dia);
+            if (this.selectedDias.includes(dia)) {
+              this.selectedDias = this.selectedDias.filter(d => d !== dia);
+            } else {
+              this.selectedDias.push(dia);
+            }
+            btn.classList.toggle('selected');
+          });
+        });
+      },
+
+      next() {
+        if (this.step === 1) {
+          const nombre = document.getElementById('ob-nombre').value.trim();
+          if (!nombre) { document.getElementById('ob-nombre').focus(); return; }
+        }
+        if (this.step >= this.totalSteps) return;
+        document.getElementById(`step-${this.step}`).classList.remove('active');
+        this.step++;
+        document.getElementById(`step-${this.step}`).classList.add('active');
+        this._renderProgress();
+      },
+
+      prev() {
+        if (this.step <= 1) return;
+        document.getElementById(`step-${this.step}`).classList.remove('active');
+        this.step--;
+        document.getElementById(`step-${this.step}`).classList.add('active');
+        this._renderProgress();
+      },
+
+      finish() {
+        const nombre = document.getElementById('ob-nombre').value.trim() || 'Usuario';
+        const peso = parseFloat(document.getElementById('ob-peso').value) || 80;
+        const meta = parseFloat(document.getElementById('ob-meta').value) || 70;
+        const metaCal = parseInt(document.getElementById('ob-cal').value) || 2200;
+        const horaGym = document.getElementById('ob-hora-gym').value || '06:00';
+
+        Storage.guardarConfig({
+          nombre, pesoInicial: peso, meta, hito: Math.ceil(peso / 10) * 10,
+          metaCal, horaGym, horaCena: '19:00', diasGym: this.selectedDias
+        });
+
+        Storage.guardarPeso(Storage.today(), peso);
+
+        // Sync to cloud if available
+        if (Auth.initialized) CloudSync.pushToCloud();
+
+        window.location.href = 'dashboard.html';
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => Onboarding.init());
+  </script>
+</body>
+</html>
