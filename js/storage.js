@@ -1,5 +1,6 @@
 /* =========================================================
-   NutriTrack - Capa de Persistencia (localStorage) v3
+   FitPulse - Capa de Persistencia (localStorage) v3
+   Con sync automático a Firebase Firestore
    ========================================================= */
 
 const Storage = {
@@ -29,6 +30,7 @@ const Storage = {
     const mes = JSON.parse(localStorage.getItem(key) || '{}');
     mes[fecha] = data;
     localStorage.setItem(key, JSON.stringify(mes));
+    this._syncToCloud();
   },
 
   obtenerDia(fecha) {
@@ -45,6 +47,7 @@ const Storage = {
   /* ---------- comidas / calorías ---------- */
   guardarComidas(fecha, data) {
     localStorage.setItem(this.COMIDAS_PREFIX + fecha, JSON.stringify(data));
+    this._syncToCloud();
   },
 
   obtenerComidas(fecha) {
@@ -55,6 +58,7 @@ const Storage = {
   /* ---------- agua ---------- */
   guardarAgua(fecha, data) {
     localStorage.setItem(this.WATER_PREFIX + fecha, JSON.stringify(data));
+    this._syncToCloud();
   },
 
   obtenerAgua(fecha) {
@@ -85,6 +89,7 @@ const Storage = {
   /* ---------- ejercicios ---------- */
   guardarEjercicios(fecha, data) {
     localStorage.setItem(this.EJERCICIOS_PREFIX + fecha, JSON.stringify(data));
+    this._syncToCloud();
   },
 
   obtenerEjercicios(fecha) {
@@ -95,6 +100,7 @@ const Storage = {
   /* ---------- medidas corporales ---------- */
   guardarMedidas(data) {
     localStorage.setItem(this.MEDIDAS_KEY, JSON.stringify(data));
+    this._syncToCloud();
   },
 
   obtenerMedidas() {
@@ -123,6 +129,7 @@ const Storage = {
     data.registros.push({ fecha, peso: parseFloat(peso), semana });
     data.registros.sort((a, b) => a.fecha.localeCompare(b.fecha));
     localStorage.setItem(this.PESO_KEY, JSON.stringify(data));
+    this._syncToCloud();
   },
 
   obtenerPesos() {
@@ -132,7 +139,10 @@ const Storage = {
   },
 
   /* ---------- config ---------- */
-  guardarConfig(cfg) { localStorage.setItem(this.CONFIG_KEY, JSON.stringify(cfg)); },
+  guardarConfig(cfg) {
+    localStorage.setItem(this.CONFIG_KEY, JSON.stringify(cfg));
+    this._syncToCloud();
+  },
 
   obtenerConfig() {
     const raw = localStorage.getItem(this.CONFIG_KEY);
@@ -233,6 +243,13 @@ const Storage = {
     const data = JSON.parse(jsonStr);
     for (const [key, val] of Object.entries(data)) {
       if (key.startsWith('nutritrack_') || key === 'nutritrack_dark') localStorage.setItem(key, JSON.stringify(val));
+    }
+  },
+
+  /* ---------- cloud sync helper ---------- */
+  _syncToCloud() {
+    if (typeof CloudSync !== 'undefined' && CloudSync.onDataChanged) {
+      CloudSync.onDataChanged();
     }
   }
 };

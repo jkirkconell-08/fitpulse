@@ -1,11 +1,17 @@
 /* =========================================================
    FitPulse - Cloud Sync (Firestore)
-   Syncs localStorage data to/from Firebase Firestore
+   Sincroniza localStorage <-> Firebase Firestore
+   
+   Lógica:
+   - Login en dispositivo nuevo → descarga TODO de la nube
+   - Cambios locales → sube a la nube automáticamente
+   - Mismo correo = mismos datos en cualquier lugar
    ========================================================= */
 
 const CloudSync = {
   _syncing: false,
   _lastSync: 0,
+  _saveTimer: null,
 
   /* Push all local data to Firestore */
   async pushToCloud() {
@@ -16,17 +22,17 @@ const CloudSync = {
       const { doc, setDoc } = Auth._dbModule;
       const uid = Auth.user.uid;
 
-      // Collect all fitpulse/nutritrack data
+      // Collect all app data from localStorage
       const allData = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('nutritrack_') || key.startsWith('fitpulse_')) {
+        // Save all nutritrack/fitpulse data keys (skip user session)
+        if (key.startsWith('nutritrack_') || key === 'fitpulse_config') {
           try { allData[key] = JSON.parse(localStorage.getItem(key)); }
           catch { allData[key] = localStorage.getItem(key); }
         }
       }
 
-      // Save as single document (efficient for small apps)
       await setDoc(doc(Auth.db, 'users', uid), {
         data: JSON.stringify(allData),
         updatedAt: new Date().toISOString(),
@@ -35,7 +41,7 @@ const CloudSync = {
       }, { merge: true });
 
       this._lastSync = Date.now();
-      console.log('CloudSync: pushed to cloud');
+      console.log('☁️ Datos subidos a la nube');
     } catch (e) {
       console.error('CloudSync push error:', e);
     } finally {
@@ -43,7 +49,7 @@ const CloudSync = {
     }
   },
 
-  /* Pull data from Firestore to localStorage */
+  /* Pull ALL data from Firestore → replace localStorage */
   async pullFromCloud() {
     if (!Auth.initialized || !Auth.user) return;
 
@@ -52,44 +58,107 @@ const CloudSync = {
       const uid = Auth.user.uid;
       const snap = await getDoc(doc(Auth.db, 'users', uid));
 
-      if (snap.exists()) {
-        const cloudData = JSON.parse(snap.data().data || '{}');
+      if (snap.exists() && snap.data().data) {
+        const cloudData = JSON.parse(snap.data().data);
         let imported = 0;
 
+        // Check if this is a NEW device (no local data yet)
+        const hasLocalData = localStorage.getItem('nutritrack_config') !== null;
+
         for (const [key, val] of Object.entries(cloudData)) {
-          // Only import if local doesn't have it or cloud is newer
-          const localVal = localStorage.getItem(key);
-          if (!localVal) {
+          if (!hasLocalData) {
+            // NEW DEVICE: import everything from cloud
             localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
             imported++;
+          } else {
+            // EXISTING DEVICE: only import what's missing locally
+            const localVal = localStorage.getItem(key);
+            if (!localVal) {
+              localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+              imported++;
+            }
           }
         }
 
         if (imported > 0) {
-          console.log(`CloudSync: pulled ${imported} items from cloud`);
+          console.log(`☁️ ${imported} items descargados de la nube`);
+          // Reload page to show synced data (only if significant data was imported)
+          if (imported > 2 && !hasLocalData) {
+            window.location.reload();
+          }
         }
+      } else {
+        // No cloud data exists yet — push local data up
+        console.log('☁️ No hay datos en la nube, subiendo datos locales...');
+        await this.pushToCloud();
       }
     } catch (e) {
       console.error('CloudSync pull error:', e);
     }
   },
 
-  /* Auto-sync: call periodically or on data change */
-  scheduleSync() {
-    // Sync every 5 minutes
-    setInterval(() => this.pushToCloud(), 5 * 60 * 1000);
+  /* Force full sync: download cloud → overwrite local */
+  async forceDownload() {
+    if (!Auth.initialized || !Auth.user) {
+      showToast('No hay sesión activa', 'warning');
+      return;
+    }
 
-    // Also sync when page is about to close
+    try {
+      const { doc, getDoc } = Auth._dbModule;
+      const uid = Auth.user.uid;
+      const snap = await getDoc(doc(Auth.db, 'users', uid));
+
+      if (snap.exists() && snap.data().data) {
+        const cloudData = JSON.parse(snap.data().data);
+
+        // Clear local app data first
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('nutritrack_')) keysToRemove.push(key);
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        // Import all cloud data
+        for (const [key, val] of Object.entries(cloudData)) {
+          localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+        }
+
+        showToast('✅ Datos sincronizados desde la nube');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        showToast('No hay datos en la nube aún', 'warning');
+      }
+    } catch (e) {
+      console.error('Force download error:', e);
+      showToast('Error al sincronizar', 'warning');
+    }
+  },
+
+  /* Debounced save: call this after any data change */
+  onDataChanged() {
+    if (!Auth.initialized || !Auth.user) return;
+    // Debounce: wait 3 seconds after last change before syncing
+    clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this.pushToCloud(), 3000);
+  },
+
+  /* Auto-sync scheduler */
+  scheduleSync() {
+    // Sync every 2 minutes
+    setInterval(() => this.pushToCloud(), 2 * 60 * 1000);
+
+    // Sync when page is about to close
     window.addEventListener('beforeunload', () => {
       if (Auth.initialized && Auth.user) {
-        // Use sendBeacon for reliability
         this.pushToCloud();
       }
     });
 
-    // Sync on visibility change (when user comes back to app)
+    // Pull fresh data when user comes back to app
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && Auth.initialized) {
+      if (document.visibilityState === 'visible' && Auth.initialized && Auth.user) {
         this.pullFromCloud();
       }
     });

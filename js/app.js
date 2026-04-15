@@ -497,6 +497,18 @@ const Config = {
           <input type="file" id="import-file" accept=".json" style="display:none;">
         </div>
       </div>
+
+      <div class="config-section fade-in">
+        <div class="config-card">
+          <h3>☁️ Sincronización</h3>
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Usa el mismo correo de Google para tener tus datos en cualquier dispositivo.</p>
+          <div id="sync-status" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button id="btn-sync-up" class="btn btn-secondary" style="flex:1;">⬆️ Subir datos</button>
+            <button id="btn-sync-down" class="btn btn-secondary" style="flex:1;">⬇️ Descargar nube</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Save config
@@ -524,7 +536,7 @@ const Config = {
       const blob = new Blob([Storage.exportarDatos()], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `nutritrack_backup_${Storage.today()}.json`;
+      a.download = `fitpulse_backup_${Storage.today()}.json`;
       a.click();
     });
 
@@ -539,6 +551,26 @@ const Config = {
         catch { showToast('Error al importar', 'warning'); }
       };
       reader.readAsText(file);
+    });
+
+    // Cloud Sync buttons
+    const syncStatus = document.getElementById('sync-status');
+    const user = typeof Auth !== 'undefined' ? Auth.getUser() : null;
+    if (syncStatus) {
+      syncStatus.textContent = user?.email
+        ? `✅ Conectado como ${user.email}`
+        : '⚠️ Sin sesión — inicia sesión con Google para sincronizar';
+    }
+    document.getElementById('btn-sync-up')?.addEventListener('click', async () => {
+      if (!user) { showToast('Inicia sesión con Google primero', 'warning'); return; }
+      showToast('Subiendo datos...');
+      await CloudSync.pushToCloud();
+      showToast('✅ Datos subidos a la nube');
+    });
+    document.getElementById('btn-sync-down')?.addEventListener('click', async () => {
+      if (!user) { showToast('Inicia sesión con Google primero', 'warning'); return; }
+      showToast('Descargando desde la nube...');
+      await CloudSync.forceDownload();
     });
   }
 };
