@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    FitPulse - Rutina Diaria del "Hoy" (editable por usuario)
    ========================================================= */
 
@@ -100,9 +100,10 @@ const App = {
       </div>
       <div class="fecha-info">
         <div class="mes-year">${MESES[d.getMonth()]} ${d.getFullYear()}</div>
-        ${racha > 0 ? `<div class="racha"> + Icons.get('flame','icon-sm icon-accent',16) +  \ día${racha > 1 ? 's' : ''} de racha</div>` : ''}
+        ${racha > 0 ? `<div class="racha" style="display:flex;align-items:center;gap:5px;"><i data-lucide="flame" style="width:15px;height:15px;color:#FF6B35;"></i> ${racha} día${racha > 1 ? 's' : ''} de racha</div>` : ''}
       </div>
     `;
+    if (window.lucide) lucide.createIcons();
   },
 
   _renderStats() {
@@ -213,7 +214,7 @@ const App = {
           el.style.cssText = 'gap:10px;';
           el.innerHTML = `
             <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="check-icon">${Icons.get(item.icon,'icon-lg',22) || item.icon}</div>
+            <div class="check-icon"><i data-lucide="${item.icon}" style="width:22px;height:22px;"></i></div>
             <div class="check-content" style="flex:1;">
               <div class="check-label">${item.label}</div>
             </div>
@@ -538,7 +539,7 @@ const Historial = {
       checklistHTML += `
         <div class="check-item${isChecked ? ' checked' : ''}" data-id="${item.id}">
           <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="check-icon">${Icons.get(item.icon,'icon-lg',22) || item.icon}</div>
+          <div class="check-icon"><i data-lucide="${item.icon}" style="width:22px;height:22px;"></i></div>
           <div class="check-content"><div class="check-label">${item.label}</div></div>
         </div>
       `;
@@ -547,8 +548,8 @@ const Historial = {
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:500px;max-height:90vh;overflow-y:auto;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="font-size:1.1rem;">📝 ${DIAS_SEMANA[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}</h2>
-          <button id="edit-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+          <h2 style="font-size:1.1rem;"><i data-lucide="calendar" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"></i>${DIAS_SEMANA[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}</h2>
+          <button id="edit-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;"><i data-lucide="x" style="width:22px;height:22px;"></i></button>
         </div>
         <div class="checklist-card" id="edit-checklist">${checklistHTML}</div>
         <div style="margin-top:16px;">
@@ -559,10 +560,10 @@ const Historial = {
       </div>
     `;
 
-    // Toggle items
     overlay.querySelectorAll('.check-item').forEach(el => {
       el.addEventListener('click', () => el.classList.toggle('checked'));
     });
+    if (window.lucide) lucide.createIcons();
 
     // Close
     document.getElementById('edit-close').addEventListener('click', () => overlay.classList.remove('active'));

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -73,20 +73,23 @@
           </div>
         </div>
         <button id="btn-logout" class="btn btn-secondary btn-full" style="margin-top:14px;">
-          ${isOffline ? '🔑 Iniciar sesión con Google' : '🚪 Cerrar sesión'}
+          ${isOffline
+            ? `<i data-lucide="log-in" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"></i>Iniciar sesión con Google`
+            : `<i data-lucide="log-out" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"></i>Cerrar sesión`}
         </button>
       `;
       document.getElementById('btn-logout').addEventListener('click', () => {
         if (isOffline) window.location.href = 'login.html';
         else Auth.logout();
       });
+      if (window.lucide) lucide.createIcons();
 
       // Sync card
       const lastSync = localStorage.getItem('fitpulse_last_sync');
       document.getElementById('sync-card').innerHTML = `
         <h3 style="margin-bottom:10px;"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg> Sincronización</h3>
         <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
-          ${isOffline ? '⚠️ Offline — los datos se guardan solo en este dispositivo'
+          ${isOffline ? '<i data-lucide="wifi-off" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;color:#FFD60A;"></i> Offline — los datos se guardan solo en este dispositivo'
             : `<i data-lucide="check-circle" class="icon icon-md" style="width:18px;height:18px;color:#30D158;"></i> Nube activa · ${lastSync ? 'Último sync: ' + new Date(parseInt(lastSync)).toLocaleTimeString() : 'Pendiente'}`}
         </div>
         <div style="display:flex;gap:8px;">
