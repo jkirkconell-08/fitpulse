@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    NutriTrack - Registro de Comidas y Base de Datos de Alimentos
    ========================================================= */
 
@@ -129,23 +129,23 @@ const FOOD_DB = [
 ];
 
 const FOOD_CATEGORIES = [
-  { id: 'proteinas',     name: 'Proteínas',          icon: '🥩' },
-  { id: 'carbohidratos', name: 'Carbohidratos',      icon: '🍚' },
-  { id: 'frutas',        name: 'Frutas',             icon: '🍎' },
-  { id: 'verduras',      name: 'Verduras',           icon: '🥬' },
-  { id: 'lacteos',       name: 'Lácteos',            icon: '🧀' },
-  { id: 'bebidas',       name: 'Bebidas',            icon: '☕' },
-  { id: 'snacks',        name: 'Snacks / Postres',   icon: '🍪' },
-  { id: 'grasas',        name: 'Grasas / Condimentos', icon: '🫒' },
-  { id: 'preparadas',    name: 'Comidas preparadas',   icon: '🍽️' },
+  { id: 'proteinas',     name: 'Proteínas',        icon: 'beef' },
+  { id: 'carbohidratos', name: 'Carbohidratos',    icon: 'wheat' },
+  { id: 'frutas',        name: 'Frutas',           icon: 'apple' },
+  { id: 'verduras',      name: 'Verduras',         icon: 'leaf' },
+  { id: 'lacteos',       name: 'Lácteos',          icon: 'milk' },
+  { id: 'bebidas',       name: 'Bebidas',          icon: 'coffee' },
+  { id: 'snacks',        name: 'Snacks / Postres', icon: 'cookie' },
+  { id: 'grasas',        name: 'Grasas / Condimentos', icon: 'droplets' },
+  { id: 'preparadas',    name: 'Comidas preparadas',   icon: 'utensils' },
 ];
 
 const MEAL_TYPES = [
-  { id: 'desayuno',     name: 'Desayuno',       icon: '🍳', hora: '06:00-09:00' },
-  { id: 'merienda_am',  name: 'Merienda AM',    icon: '🥤', hora: '09:00-11:00' },
-  { id: 'almuerzo',     name: 'Almuerzo',       icon: '🍽️', hora: '11:00-14:00' },
-  { id: 'merienda_pm',  name: 'Merienda PM',    icon: '🍎', hora: '14:00-17:00' },
-  { id: 'cena',         name: 'Cena',           icon: '🥗', hora: '17:00-21:00' },
+  { id: 'desayuno',     name: 'Desayuno',    icon: 'sunrise',  hora: '06:00-09:00' },
+  { id: 'merienda_am',  name: 'Merienda AM', icon: 'cup-soda', hora: '09:00-11:00' },
+  { id: 'almuerzo',     name: 'Almuerzo',    icon: 'utensils', hora: '11:00-14:00' },
+  { id: 'merienda_pm',  name: 'Merienda PM', icon: 'apple',    hora: '14:00-17:00' },
+  { id: 'cena',         name: 'Cena',        icon: 'moon',     hora: '17:00-21:00' },
 ];
 
 const Comidas = {
@@ -229,6 +229,7 @@ const Comidas = {
     `;
 
     this._renderMealsList(registro);
+    Icons.init();
 
     document.getElementById('btn-add-food').addEventListener('click', () => {
       this._showFoodSearch();
@@ -278,7 +279,7 @@ const Comidas = {
       html += `
         <div class="meal-group fade-in">
           <div class="meal-group-header">
-            <span class="meal-group-icon">${meal.icon}</span>
+            <span class="meal-group-icon"><i data-lucide="${meal.icon}" style="width:18px;height:18px;vertical-align:middle;"></i></span>
             <span class="meal-group-name">${meal.name}</span>
             <span class="meal-group-cal">${mealCal} kcal</span>
           </div>
@@ -292,7 +293,7 @@ const Comidas = {
               <div class="meal-item-name">${item.nombre}</div>
               <div class="meal-item-detail">${item.cantidad > 1 ? item.cantidad + 'x ' : ''}${item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
             </div>
-            <button class="meal-item-del" data-id="${item.id}" title="Eliminar">✕</button>
+            <button class="meal-item-del" data-id="${item.id}" title="Eliminar"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
           </div>
         `;
       });
@@ -303,6 +304,7 @@ const Comidas = {
     container.innerHTML = html;
 
     // Delete buttons
+    Icons.init();
     container.querySelectorAll('.meal-item-del').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = parseInt(e.target.dataset.id);
@@ -331,8 +333,8 @@ const Comidas = {
 
     // Render category buttons
     catBtns.innerHTML = `<button class="cat-btn active" data-cat="all">Todos</button>` +
-      FOOD_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${c.id}">${c.icon} ${c.name}</button>`).join('') +
-      `<button class="cat-btn" data-cat="custom">✏️ Personalizado</button>`;
+      FOOD_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${c.id}"><i data-lucide="${c.icon}" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>${c.name}</button>`).join('') +
+      `<button class="cat-btn" data-cat="custom"><i data-lucide="pencil" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>Personalizado</button>`;
 
     let currentCat = 'all';
 
@@ -414,7 +416,7 @@ const Comidas = {
         <div class="config-row">
           <label>Tipo de comida</label>
           <select id="cf-tipo">
-            ${MEAL_TYPES.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('')}
+            ${MEAL_TYPES.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
           </select>
         </div>
         <button id="cf-save" class="btn btn-primary btn-full" style="margin-top:12px;">Agregar</button>
@@ -465,7 +467,7 @@ const Comidas = {
         <div class="config-row">
           <label>Tipo de comida</label>
           <select id="add-tipo" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
-            ${MEAL_TYPES.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('')}
+            ${MEAL_TYPES.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
           </select>
         </div>
         <div id="add-preview" style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-bottom:12px;">

@@ -173,10 +173,10 @@ const App = {
     const checklist = dia ? dia.checklist : {};
 
     const SECCIONES = [
-      { key: 'manana',  titulo: Icons.get('sunrise','icon-md icon-accent') + ' Mañana' },
-      { key: 'tarde',   titulo: Icons.get('sun','icon-md icon-accent') + ' Tarde' },
-      { key: 'noche',   titulo: Icons.get('moon','icon-md icon-accent') + ' Noche' },
-      { key: 'general', titulo: Icons.get('pin','icon-md icon-accent') + ' General' }
+      { key: 'manana',  titulo: '<i data-lucide="sunrise" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Mañana' },
+      { key: 'tarde',   titulo: '<i data-lucide="sun" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Tarde' },
+      { key: 'noche',   titulo: '<i data-lucide="moon" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Noche' },
+      { key: 'general', titulo: '<i data-lucide="map-pin" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>General' }
     ];
 
     container.innerHTML = '';
@@ -262,12 +262,12 @@ const App = {
   _openItemEditor(itemId, defaultSec = 'manana') {
     const existing = itemId ? getDailyItems().find(i => i.id === itemId) : null;
     const isNew = !existing;
-    const ICONS = ['drop','bolt','dumbbell','utensils','cup','coffee','apple','leaf','moon','pin','run','pill','meditation','book','shower','bed','coffee','leaf','brain','bolt'];
+    const ICONS = ['droplets','zap','dumbbell','utensils','cup-soda','coffee','apple','leaf','moon','map-pin','activity','pill','wind','book-open','shower-head','bed','clock','scale','brain','flame'];
     const SECS = [
-      { key: 'manana', label: Icons.get('sunrise','icon-md icon-accent') + ' Mañana' },
-      { key: 'tarde',  label: Icons.get('sun','icon-md icon-accent') + ' Tarde' },
-      { key: 'noche',  label: Icons.get('moon','icon-md icon-accent') + ' Noche' },
-      { key: 'general',label: Icons.get('pin','icon-md icon-accent') + ' General' }
+      { key: 'manana', label: '<i data-lucide="sunrise" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Mañana' },
+      { key: 'tarde',  label: '<i data-lucide="sun" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Tarde' },
+      { key: 'noche',  label: '<i data-lucide="moon" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Noche' },
+      { key: 'general',label: '<i data-lucide="map-pin" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>General' }
     ];
 
     // Use nota-overlay as modal (repurpose)
@@ -286,8 +286,8 @@ const App = {
 
         <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">Ícono</label>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="icon-grid">
-          ${ICONS.map(ic => `<button class="ic-btn" data-ic="${ic}"
-            style="width:40px;height:40px;border-radius:10px;border:2px solid ${existing?.icon===ic?'#7C3AED':'var(--border)'};background:${existing?.icon===ic?'rgba(124,58,237,0.15)':'var(--bg-input)'};font-size:1.2rem;cursor:pointer;">${ic}</button>`).join('')}
+          ${ICONS.map(ic => `<button class="ic-btn" data-ic="${ic}" title="${ic}"
+            style="width:40px;height:40px;border-radius:10px;border:2px solid ${existing?.icon===ic?'#7C3AED':'var(--border)'};background:${existing?.icon===ic?'rgba(124,58,237,0.15)':'var(--bg-input)'};cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="${ic}" style="width:20px;height:20px;"></i></button>`).join('')}
         </div>
 
         <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">Momento del día</label>
@@ -372,7 +372,7 @@ const App = {
     const nota = dia ? dia.nota || '' : '';
     container.innerHTML = `
       <div class="nota-card">
-        <h3>📝 Nota del día</h3>
+        <h3><i data-lucide="file-text" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;"></i>Nota del día</h3>
         <textarea id="nota-textarea" class="nota-textarea" placeholder="¿Qué comiste hoy? ¿Cómo te sentiste?">${nota}</textarea>
         <div id="nota-guardada" class="nota-guardada">Guardada</div>
       </div>

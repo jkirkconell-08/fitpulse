@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    FitPulse - Dashboard Semanal
    ========================================================= */
 
@@ -64,7 +64,7 @@ const Dashboard = {
       <!-- Semana: calorías -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
-          <h3>📊 Calorías de la semana</h3>
+          <h3><i data-lucide="bar-chart-2" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Calorías de la semana</h3>
           <span class="dash-card-badge">Prom: ${datos.promedioCal} kcal</span>
         </div>
         <div class="dash-bar-chart" id="cal-bars">
@@ -88,7 +88,7 @@ const Dashboard = {
       <!-- Semana: cumplimiento -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
-          <h3>✅ Cumplimiento</h3>
+          <h3><i data-lucide="check-circle" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Cumplimiento</h3>
           <span class="dash-card-badge">${datos.cumplimientoPromedio}% prom</span>
         </div>
         <div class="dash-week-dots">
@@ -109,7 +109,7 @@ const Dashboard = {
       <!-- Semana: agua -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
-          <h3>💧 Agua</h3>
+          <h3><i data-lucide="droplets" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Agua</h3>
           <span class="dash-card-badge">${datos.totalAgua} vasos total</span>
         </div>
         <div class="dash-week-dots">
@@ -131,14 +131,14 @@ const Dashboard = {
       <!-- Gym esta semana -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
-          <h3>🏋️ Gym</h3>
+          <h3><i data-lucide="dumbbell" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Gym</h3>
           <span class="dash-card-badge">${datos.ejerciciosDias}/7 días</span>
         </div>
         <div class="dash-week-dots">
           ${datos.dias.map((d, i) => {
             const isToday = d.fecha === hoy;
             return `<div class="dash-dot-col ${isToday ? 'today' : ''}">
-              <div class="dash-dot ${d.ejercicios ? 'green' : 'empty'}">${d.ejercicios ? '💪' : '-'}</div>
+              <div class="dash-dot ${d.ejercicios ? 'green' : 'empty'}">${d.ejercicios ? '<i data-lucide="dumbbell" style="width:14px;height:14px;"></i>' : '-'}</div>
               <span>${DIAS_MINI[i]}</span>
             </div>`;
           }).join('')}
@@ -148,7 +148,7 @@ const Dashboard = {
       <!-- Peso progress -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
-          <h3>⚖️ Progreso de peso</h3>
+          <h3><i data-lucide="scale" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Progreso de peso</h3>
         </div>
         <div class="dash-peso-summary">
           <div class="dash-peso-num">${lastPeso.peso} <small>kg</small></div>
@@ -161,10 +161,11 @@ const Dashboard = {
 
       <!-- Compartir -->
       <button id="btn-compartir" class="btn btn-primary btn-full" style="margin-top:8px;">
-        📱 Compartir resumen semanal
+        <i data-lucide="share-2" style="width:18px;height:18px;margin-right:8px;vertical-align:middle;"></i>Compartir resumen semanal
       </button>
     `;
 
+    Icons.init();
     document.getElementById('btn-compartir').addEventListener('click', () => this._share(datos, config, lastPeso));
   },
 
@@ -243,7 +244,7 @@ const Dashboard = {
     ctx.fillStyle = '#64748b'; ctx.font = '13px Arial';
     ctx.fillText(`Meta: ${config.meta} kg · ${config.metaCal} kcal/día`, 20, 640);
     ctx.fillStyle = '#6C3CE1'; ctx.font = 'bold 14px Arial';
-    ctx.fillText('Generado con FitPulse 💜', 20, 670);
+    ctx.fillText('Generado con FitPulse', 20, 670);
 
     // Progress bar
     ctx.fillStyle = '#253443';
