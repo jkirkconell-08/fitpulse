@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    FitPulse - Rutinas Personalizadas
    CRUD completo: crear, editar, eliminar rutinas
    + Sesión de gym paso a paso con timer de descanso
@@ -168,9 +168,9 @@ const Routines = {
         </div>
         <div style="position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:6px;">
           <button class="routine-edit-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);">✏️</button>
+            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button class="routine-del-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);">🗑️</button>
+            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
         </div>
       </div>
     `;
@@ -308,13 +308,13 @@ const Routines = {
             <button id="sess-skip"
               style="flex:1;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;">Saltar</button>
             <button id="sess-complete"
-              style="flex:2;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#30D158,#34C759);color:#fff;font-family:inherit;font-size:0.95rem;font-weight:800;cursor:pointer;">✓ Completada</button>
+              style="flex:2;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#30D158,#34C759);color:#fff;font-family:inherit;font-size:0.95rem;font-weight:800;cursor:pointer;">Completada</button>
           </div>
         </div>
 
         <div style="font-size:0.72rem;color:var(--text-muted);font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Siguiente</div>
         <div style="text-align:left;font-size:0.85rem;color:var(--text-secondary);font-weight:600;">
-          ${s.exercises[s.currentEx + 1] ? `${s.currentEx + 2}. ${s.exercises[s.currentEx + 1].name}` : '🏁 Fin de la rutina'}
+          ${s.exercises[s.currentEx + 1] ? `${s.currentEx + 2}. ${s.exercises[s.currentEx + 1].name}` : '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Fin de la rutina'}
         </div>
       </div>
     `;
@@ -405,7 +405,7 @@ const Routines = {
 
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:400px;text-align:center;">
-        <div style="font-size:3.5rem;margin-bottom:10px;">🏆</div>
+        <div style="font-size:3.5rem;margin-bottom:10px;"><svg style="width:56px;height:56px;color:#FFD60A;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 006 6v0a6 6 0 006-6V2z"/></svg></div>
         <h2 style="font-size:1.5rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px;">¡Sesión completada!</h2>
         <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;">${s.routineName}</p>
 
@@ -434,7 +434,7 @@ const Routines = {
               : '#FFD60A';
             const label = ex.sets.length === 0 ? 'SIN HACER'
               : skip === ex.sets.length ? 'SALTADO'
-              : done === ex.targetSets  ? '✓ COMPLETO' : 'PARCIAL';
+              : done === ex.targetSets  ? 'COMPLETO' : 'PARCIAL';
             return `
               <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-input);border-radius:12px;border-left:3px solid ${color};">
                 <div style="flex:1;">
@@ -472,7 +472,7 @@ const Routines = {
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:520px;max-height:90vh;overflow-y:auto;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? '➕ Nueva Rutina' : '✏️ Editar Rutina'}</h2>
+          <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? 'Nueva Rutina' : 'Editar Rutina'}</h2>
           <button id="editor-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
         </div>
 
@@ -519,7 +519,7 @@ const Routines = {
         </div>
 
         <button id="btn-save-routine" class="btn btn-primary btn-full" style="margin-top:24px;">
-          ${isNew ? '✅ Crear Rutina' : '💾 Guardar Cambios'}
+          ${isNew ? 'Crear Rutina' : 'Guardar Cambios'}
         </button>
       </div>
     `;
@@ -583,7 +583,7 @@ const Routines = {
 
       overlay.classList.remove('active');
       this._render();
-      if (typeof showToast === 'function') showToast(isNew ? '✅ Rutina creada' : '✅ Cambios guardados');
+      if (typeof showToast === 'function') showToast(isNew ? 'Rutina creada' : 'Cambios guardados');
     });
 
     document.getElementById('editor-close').onclick = () => overlay.classList.remove('active');

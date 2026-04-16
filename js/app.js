@@ -1,18 +1,18 @@
-/* =========================================================
+﻿/* =========================================================
    FitPulse - Rutina Diaria del "Hoy" (editable por usuario)
    ========================================================= */
 
 const DEFAULT_DAILY_ITEMS = [
-  { id: 'agua_manana',      label: 'Agua al levantarse',            icon: '💧', seccion: 'manana',  gymOnly: false },
-  { id: 'pre_entreno',      label: 'Pre-entreno (banano/galletas)', icon: '🍌', seccion: 'manana',  gymOnly: true  },
-  { id: 'gym',              label: 'Gym completado',                icon: '🏋️', seccion: 'manana',  gymOnly: true  },
-  { id: 'desayuno_postgym', label: 'Desayuno completo',            icon: '🍳', seccion: 'manana',  gymOnly: false },
-  { id: 'merienda_manana',  label: 'Merienda mañana',              icon: '🥤', seccion: 'manana',  gymOnly: false },
-  { id: 'almuerzo',         label: 'Almuerzo',                     icon: '🍽️', seccion: 'tarde',   gymOnly: false },
-  { id: 'merienda_tarde',   label: 'Merienda tarde',               icon: '🍎', seccion: 'tarde',   gymOnly: false },
-  { id: 'cena',             label: 'Cena',                         icon: '🥗', seccion: 'noche',   gymOnly: false },
-  { id: 'agua_2L',          label: '2 litros de agua hoy',         icon: '💧', seccion: 'general', gymOnly: false },
-  { id: 'dormir_10pm',      label: 'Dormir antes de 10:00pm',      icon: '🌙', seccion: 'noche',   gymOnly: false }
+  { id: 'agua_manana',      label: 'Agua al levantarse',            icon: 'drop', seccion: 'manana',  gymOnly: false },
+  { id: 'pre_entreno',      label: 'Pre-entreno (banano/galletas)', icon: 'bolt', seccion: 'manana',  gymOnly: true  },
+  { id: 'gym',              label: 'Gym completado',                icon: 'dumbbell', seccion: 'manana',  gymOnly: true  },
+  { id: 'desayuno_postgym', label: 'Desayuno completo',            icon: 'utensils', seccion: 'manana',  gymOnly: false },
+  { id: 'merienda_manana',  label: 'Merienda mañana',              icon: 'cup', seccion: 'manana',  gymOnly: false },
+  { id: 'almuerzo',         label: 'Almuerzo',                     icon: 'utensils', seccion: 'tarde',   gymOnly: false },
+  { id: 'merienda_tarde',   label: 'Merienda tarde',               icon: 'apple', seccion: 'tarde',   gymOnly: false },
+  { id: 'cena',             label: 'Cena',                         icon: 'leaf', seccion: 'noche',   gymOnly: false },
+  { id: 'agua_2L',          label: '2 litros de agua hoy',         icon: 'drop', seccion: 'general', gymOnly: false },
+  { id: 'dormir_10pm',      label: 'Dormir antes de 10:00pm',      icon: 'moon', seccion: 'noche',   gymOnly: false }
 ];
 
 const DAILY_ROUTINE_KEY = 'fitpulse_daily_routine';
@@ -100,7 +100,7 @@ const App = {
       </div>
       <div class="fecha-info">
         <div class="mes-year">${MESES[d.getMonth()]} ${d.getFullYear()}</div>
-        ${racha > 0 ? `<div class="racha">🔥 ${racha} día${racha > 1 ? 's' : ''} de racha</div>` : ''}
+        ${racha > 0 ? `<div class="racha"> + Icons.get('flame','icon-sm icon-accent',16) +  \ día${racha > 1 ? 's' : ''} de racha</div>` : ''}
       </div>
     `;
   },
@@ -172,10 +172,10 @@ const App = {
     const checklist = dia ? dia.checklist : {};
 
     const SECCIONES = [
-      { key: 'manana',  titulo: '🌅 Mañana' },
-      { key: 'tarde',   titulo: '☀️ Tarde' },
-      { key: 'noche',   titulo: '🌙 Noche' },
-      { key: 'general', titulo: '📌 General' }
+      { key: 'manana',  titulo: Icons.get('sunrise','icon-md icon-accent') + ' Mañana' },
+      { key: 'tarde',   titulo: Icons.get('sun','icon-md icon-accent') + ' Tarde' },
+      { key: 'noche',   titulo: Icons.get('moon','icon-md icon-accent') + ' Noche' },
+      { key: 'general', titulo: Icons.get('pin','icon-md icon-accent') + ' General' }
     ];
 
     container.innerHTML = '';
@@ -212,7 +212,7 @@ const App = {
           el.style.cssText = 'gap:10px;';
           el.innerHTML = `
             <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="check-icon">${item.icon}</div>
+            <div class="check-icon">${Icons.get(item.icon,'icon-lg',22) || item.icon}</div>
             <div class="check-content" style="flex:1;">
               <div class="check-label">${item.label}</div>
             </div>
@@ -260,12 +260,12 @@ const App = {
   _openItemEditor(itemId, defaultSec = 'manana') {
     const existing = itemId ? getDailyItems().find(i => i.id === itemId) : null;
     const isNew = !existing;
-    const ICONS = ['💧','🍌','🏋️','🍳','🥤','🍽️','🍎','🥗','🌙','📌','🏃','💊','🧘','📖','🚿','🛏️','☕','🥦','🧠','⚡'];
+    const ICONS = ['drop','bolt','dumbbell','utensils','cup','coffee','apple','leaf','moon','pin','run','pill','meditation','book','shower','bed','coffee','leaf','brain','bolt'];
     const SECS = [
-      { key: 'manana', label: '🌅 Mañana' },
-      { key: 'tarde',  label: '☀️ Tarde' },
-      { key: 'noche',  label: '🌙 Noche' },
-      { key: 'general',label: '📌 General' }
+      { key: 'manana', label: Icons.get('sunrise','icon-md icon-accent') + ' Mañana' },
+      { key: 'tarde',  label: Icons.get('sun','icon-md icon-accent') + ' Tarde' },
+      { key: 'noche',  label: Icons.get('moon','icon-md icon-accent') + ' Noche' },
+      { key: 'general',label: Icons.get('pin','icon-md icon-accent') + ' General' }
     ];
 
     // Use nota-overlay as modal (repurpose)
@@ -535,7 +535,7 @@ const Historial = {
       checklistHTML += `
         <div class="check-item${isChecked ? ' checked' : ''}" data-id="${item.id}">
           <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="check-icon">${item.icon}</div>
+          <div class="check-icon">${Icons.get(item.icon,'icon-lg',22) || item.icon}</div>
           <div class="check-content"><div class="check-label">${item.label}</div></div>
         </div>
       `;

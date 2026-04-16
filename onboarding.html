@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -136,7 +136,7 @@
 
     <!-- Step 1: Nombre -->
     <div class="onboard-step active" id="step-1">
-      <div class="ob-emoji">👋</div>
+      <div class="ob-emoji"><svg class="icon icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11.5V9a2 2 0 00-2-2v0a2 2 0 00-2 2v1M14 10V8a2 2 0 00-2-2v0a2 2 0 00-2 2v2m0 0V5a2 2 0 00-2-2v0a2 2 0 00-2 2v9"/><path d="M6 14v0a6 6 0 006 6h2a6 6 0 006-6v-3"/></svg></div>
       <h1 class="ob-title">¡Bienvenido a<br>FitPulse!</h1>
       <p class="ob-desc">Vamos a configurar tu perfil. Puedes saltar cualquier paso que no sepas.</p>
       <div class="onboard-fields">
@@ -152,7 +152,7 @@
 
     <!-- Step 2: Peso y metas -->
     <div class="onboard-step" id="step-2">
-      <div class="ob-emoji">⚖️</div>
+      <div class="ob-emoji"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l1 12h12L19 8M12 2v6M3 8h18M9.5 8a2.5 2.5 0 005 0"/></svg></div>
       <h1 class="ob-title">Tu peso y metas</h1>
       <p class="ob-desc">Esto nos ayuda a calcular tu progreso. Puedes actualizarlo en cualquier momento.</p>
       <div class="onboard-fields">
@@ -177,7 +177,7 @@
 
     <!-- Step 3: Gym -->
     <div class="onboard-step" id="step-3">
-      <div class="ob-emoji">🏋️</div>
+      <div class="ob-emoji"><svg class="icon icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11M6.5 17.5h11M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg></div>
       <h1 class="ob-title">Tu rutina de gym</h1>
       <p class="ob-desc">¿Qué días entrenas? Puedes cambiar esto después. <span class="ob-optional">Todo es opcional.</span></p>
       <div class="onboard-fields">
@@ -192,11 +192,12 @@
       </div>
       <div class="onboard-btns">
         <button class="btn-ob-back" onclick="Onboarding.prev()">←</button>
-        <button class="btn-ob-next" onclick="Onboarding.finish()">¡Empezar! 🚀</button>
+        <button class="btn-ob-next" onclick="Onboarding.finish()">¡Empezar! <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></button>
       </div>
     </div>
   </div>
 
+  <script src="js/icons.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>

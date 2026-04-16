@@ -110,6 +110,20 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
+/* ─── Icon System ─── */
+.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+.icon-wrap { display: inline-flex; align-items: center; justify-content: center; }
+.icon-sm  { width: 16px; height: 16px; }
+.icon-md  { width: 20px; height: 20px; }
+.icon-lg  { width: 24px; height: 24px; }
+.icon-xl  { width: 32px; height: 32px; }
+.icon-accent  { color: #7C3AED; }
+.icon-muted   { color: #636366; }
+.icon-white   { color: #fff; }
+.icon-success { color: #30D158; }
+.icon-warning { color: #FFD60A; }
+.icon-danger  { color: #FF453A; }
+
 .app-header .logo {
   display: flex;
   align-items: center;
