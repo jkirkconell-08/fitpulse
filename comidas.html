@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon">FP</div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div></header>
+  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div></header>
   <main class="container"><h1 class="page-title">Comidas del día</h1><p class="page-subtitle">Registro y seguimiento calórico</p><div id="comidas-container"></div></main>
   <div id="food-overlay" class="overlay"><div class="overlay-content" style="max-width:520px;max-height:90vh;overflow-y:auto;text-align:left;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h2 style="font-size:1.1rem;">🔍 Buscar alimento</h2><button id="food-overlay-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button></div><input type="search" id="food-search-input" class="food-search-input" placeholder="Buscar alimento..." autocomplete="off"><div id="food-cat-btns" class="food-cat-btns"></div><div id="food-search-results" class="food-search-results"></div></div></div>
   <div id="food-add-modal" class="overlay"></div>

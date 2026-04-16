@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon">FP</div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div></header>
+  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div></header>
   <main class="container"><h1 class="page-title">Progreso de Peso</h1><p class="page-subtitle">Registro semanal y avance hacia tu meta</p><div id="progreso-stats" class="progreso-stats"></div><div id="progress-bar" class="progress-bar-container"></div><div id="hito-msg"></div><div id="chart-wrapper" class="chart-wrapper"><canvas id="peso-chart"></canvas></div><div class="peso-form-card"><h3>Registrar peso</h3><div class="form-row"><div class="form-group"><label for="peso-input">Peso (kg)</label><input type="number" id="peso-input" step="0.1" placeholder="Ej: 105.3" inputmode="decimal"></div><button id="btn-registrar-peso" class="btn btn-primary">Registrar</button></div><div id="peso-dia-msg" class="peso-dia-msg"></div></div><div id="peso-tabla"></div></main>
   <nav class="bottom-nav">
     <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Inicio</span></a>
