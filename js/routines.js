@@ -473,7 +473,7 @@ const Routines = {
 
     const overlay = document.getElementById('routine-overlay');
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:520px;max-height:90vh;overflow-y:auto;text-align:left;">
+      <div class="overlay-content" style="max-width:520px;width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;text-align:left;box-sizing:border-box;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? 'Nueva Rutina' : 'Editar Rutina'}</h2>
           <button id="editor-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;"><i data-lucide="x" style="width:22px;height:22px;"></i></button>
@@ -597,21 +597,32 @@ const Routines = {
 
   _exerciseRow(ex) {
     return `
-      <div class="ex-row" style="background:var(--bg-input);border-radius:12px;padding:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;">
-        <div style="display:flex;flex-direction:column;gap:6px;">
+      <div class="ex-row" style="background:var(--bg-input);border-radius:12px;padding:12px 12px 10px;box-sizing:border-box;width:100%;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <input class="ex-name" type="text" value="${ex.name || ''}" placeholder="Nombre del ejercicio"
-            style="border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;width:100%;">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-            <input class="ex-sets" type="number" value="${ex.sets || 3}" placeholder="Series" min="1"
-              style="border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.8rem;outline:none;text-align:center;">
-            <input class="ex-reps" type="text" value="${ex.reps || '10-12'}" placeholder="Reps"
-              style="border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.8rem;outline:none;text-align:center;">
-            <input class="ex-rest" type="number" value="${ex.rest || 60}" placeholder="Desc(s)" min="0"
-              style="border:1.5px solid var(--border);border-radius:8px;padding:7px 8px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.8rem;outline:none;text-align:center;">
+            style="flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
+          <button class="btn-remove-ex"
+            style="flex-shrink:0;background:rgba(255,69,58,0.1);border:1px solid rgba(255,69,58,0.2);color:#FF453A;width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i>
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;box-sizing:border-box;">
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Series</label>
+            <input class="ex-sets" type="number" value="${ex.sets || 3}" min="1"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Reps</label>
+            <input class="ex-reps" type="text" value="${ex.reps || '10-12'}"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Desc (s)</label>
+            <input class="ex-rest" type="number" value="${ex.rest || 60}" min="0"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
           </div>
         </div>
-        <button class="btn-remove-ex"
-          style="background:rgba(255,69,58,0.1);border:1px solid rgba(255,69,58,0.2);color:#FF453A;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;flex-shrink:0;margin-top:2px;">✕</button>
       </div>
     `;
   },
