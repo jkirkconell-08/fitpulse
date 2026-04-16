@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    FitPulse - Rutinas Personalizadas
    CRUD completo: crear, editar, eliminar rutinas
    + Sesión de gym paso a paso con timer de descanso
@@ -6,7 +6,7 @@
 
 const DEFAULT_ROUTINES = [
   {
-    id: 'default_push', name: 'Push Day', icon: '💪',
+    id: 'default_push', name: 'Push Day', icon: 'dumbbell',
     gradient: 'cat-coral', dias: [1, 3, 5],
     exercises: [
       { name: 'Press de Banca', sets: 4, reps: '8-10', rest: 90 },
@@ -18,7 +18,7 @@ const DEFAULT_ROUTINES = [
     ]
   },
   {
-    id: 'default_pull', name: 'Pull Day', icon: '🔙',
+    id: 'default_pull', name: 'Pull Day', icon: 'arrow-left-right',
     gradient: 'cat-teal', dias: [2, 4, 6],
     exercises: [
       { name: 'Dominadas', sets: 4, reps: '6-8', rest: 90 },
@@ -29,7 +29,7 @@ const DEFAULT_ROUTINES = [
     ]
   },
   {
-    id: 'default_legs', name: 'Leg Day', icon: '🦵',
+    id: 'default_legs', name: 'Leg Day', icon: 'activity',
     gradient: 'cat-blue', dias: [3, 6],
     exercises: [
       { name: 'Sentadillas', sets: 5, reps: '5-8', rest: 120 },
@@ -80,7 +80,7 @@ const Routines = {
     const routine = {
       id: 'routine_' + Date.now(),
       name: data.name || 'Nueva Rutina',
-      icon: data.icon || '💪',
+      icon: data.icon || 'dumbbell',
       gradient: data.gradient || 'cat-blue',
       dias: data.dias || [],
       exercises: data.exercises || []
@@ -119,7 +119,7 @@ const Routines = {
       </div>
       ${all.length === 0
         ? `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
-             <div style="font-size:2.5rem;margin-bottom:12px;">🏋️</div>
+             <div style="margin-bottom:12px;opacity:0.5;"><i data-lucide="dumbbell" style="width:48px;height:48px;"></i></div>
              <div style="font-weight:700;margin-bottom:6px;">Sin rutinas</div>
              <div style="font-size:0.85rem;">Pulsa + Nueva para crear tu primera rutina</div>
            </div>`
@@ -157,13 +157,12 @@ const Routines = {
       <div class="workout-cat-card ${r.gradient}" data-id="${r.id}" style="cursor:pointer;">
         <div class="cat-bg"></div>
         <div class="cat-body">
-          <div class="cat-name">${r.icon} ${r.name}</div>
+          <div class="cat-icon-wrap" style="margin-bottom:8px;opacity:0.9;">
+            <i data-lucide="${r.icon}" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="cat-name" style="font-size:1rem;font-weight:800;margin-bottom:6px;">${r.name}</div>
           <div class="cat-count">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M6.5 6.5h11M6.5 17.5h11M12 6.5v11"/>
-              <rect x="2" y="4" width="4" height="16" rx="1"/>
-              <rect x="18" y="4" width="4" height="16" rx="1"/>
-            </svg>
+            <i data-lucide="layers" style="width:14px;height:14px;margin-right:4px;opacity:0.7;"></i>
             ${r.exercises.length} ejercicios · ${diasStr}
           </div>
         </div>
@@ -463,21 +462,21 @@ const Routines = {
     const routine = id ? this.getById(id) : null;
     const isNew   = !routine;
     const GRADIENTS = [
-      { id: 'cat-coral',  name: '🔴 Coral' },
-      { id: 'cat-teal',   name: '🟢 Teal' },
-      { id: 'cat-blue',   name: '🔵 Azul' },
-      { id: 'cat-purple', name: '🟣 Violeta' },
-      { id: 'cat-orange', name: '🟠 Naranja' },
-      { id: 'cat-navy',   name: '⚓ Navy' },
+      { id: 'cat-coral',  name: 'Coral' },
+      { id: 'cat-teal',   name: 'Teal' },
+      { id: 'cat-blue',   name: 'Azul' },
+      { id: 'cat-purple', name: 'Violeta' },
+      { id: 'cat-orange', name: 'Naranja' },
+      { id: 'cat-navy',   name: 'Navy' },
     ];
-    const ICONS = ['💪','🏋️','🦵','🔙','🏃','⚡','🔥','🎯','🥊','🤸'];
+    const ICONS = ['dumbbell','activity','zap','flame','target','heart','trophy','timer','run','wind','scale','clock','sun','moon','leaf','apple','droplets','bolt','brain','star'];
 
     const overlay = document.getElementById('routine-overlay');
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:520px;max-height:90vh;overflow-y:auto;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? 'Nueva Rutina' : 'Editar Rutina'}</h2>
-          <button id="editor-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+          <button id="editor-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;"><i data-lucide="x" style="width:22px;height:22px;"></i></button>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:14px;">
@@ -490,8 +489,10 @@ const Routines = {
             <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Ícono</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               ${ICONS.map(ic => `
-                <button class="icon-btn" data-icon="${ic}"
-                  style="width:44px;height:44px;border-radius:10px;border:2px solid ${routine?.icon===ic?'#7C3AED':'var(--border)'};background:${routine?.icon===ic?'rgba(124,58,237,0.15)':'var(--bg-input)'};font-size:1.3rem;cursor:pointer;transition:all 0.15s;">${ic}</button>
+                <button class="icon-btn" data-icon="${ic}" title="${ic}"
+                  style="width:44px;height:44px;border-radius:10px;border:2px solid ${routine?.icon===ic?'#7C3AED':'var(--border)'};background:${routine?.icon===ic?'rgba(124,58,237,0.15)':'var(--bg-input)'};cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;">
+                  <i data-lucide="${ic}" style="width:22px;height:22px;pointer-events:none;"></i>
+                </button>
               `).join('')}
             </div>
           </div>
@@ -531,7 +532,7 @@ const Routines = {
     overlay.classList.add('active');
     Icons.init();
 
-    let selectedIcon = routine?.icon || '💪';
+    let selectedIcon = routine?.icon || 'dumbbell';
     let selectedDias = [...(routine?.dias || [])];
 
     overlay.querySelectorAll('.icon-btn').forEach(btn => {
