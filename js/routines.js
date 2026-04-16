@@ -236,6 +236,7 @@ const Routines = {
         targetSets: parseInt(ex.sets) || 3,
         targetReps: String(ex.reps),
         restSeconds: parseInt(ex.rest) || 60,
+        weight: ex.weight || 0,
         sets: []
       })),
       currentEx: 0,
@@ -278,7 +279,8 @@ const Routines = {
 
         <div style="font-size:0.72rem;font-weight:700;color:#A78BFA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Ejercicio actual</div>
         <h2 style="font-size:1.5rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px;">${ex.name}</h2>
-        <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;">Meta: ${ex.targetReps} reps</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:4px;">Meta: ${ex.targetReps} reps</div>
+        ${ex.weight > 0 ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:#A78BFA;font-size:0.8rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:16px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6.5 6.5h11M6.5 17.5h11M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg> ${ex.weight} lbs</div>` : '<div style="margin-bottom:16px;"></div>'}
 
         <div style="display:flex;justify-content:center;gap:8px;margin-bottom:20px;">
           ${Array.from({length: totalSets}, (_, i) => {
@@ -577,9 +579,10 @@ const Routines = {
         const n = row.querySelector('.ex-name').value.trim();
         if (n) exercises.push({
           name: n,
-          sets: parseInt(row.querySelector('.ex-sets').value) || 3,
-          reps: row.querySelector('.ex-reps').value || '10-12',
-          rest: parseInt(row.querySelector('.ex-rest').value) || 60
+          sets:   parseInt(row.querySelector('.ex-sets').value)   || 3,
+          reps:   row.querySelector('.ex-reps').value              || '10-12',
+          rest:   parseInt(row.querySelector('.ex-rest').value)   || 60,
+          weight: parseFloat(row.querySelector('.ex-weight').value) || 0
         });
       });
 
@@ -596,31 +599,35 @@ const Routines = {
   },
 
   _exerciseRow(ex) {
+    const SVG_X = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    const inputStyle = 'width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;';
+    const labelStyle = 'font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px;';
     return `
-      <div class="ex-row" style="background:var(--bg-input);border-radius:12px;padding:12px 12px 10px;box-sizing:border-box;width:100%;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div class="ex-row" style="background:var(--bg-input);border-radius:12px;padding:12px;box-sizing:border-box;width:100%;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <input class="ex-name" type="text" value="${ex.name || ''}" placeholder="Nombre del ejercicio"
             style="flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;box-sizing:border-box;">
           <button class="btn-remove-ex"
-            style="flex-shrink:0;background:rgba(255,69,58,0.1);border:1px solid rgba(255,69,58,0.2);color:#FF453A;width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i>
+            style="flex-shrink:0;background:rgba(255,69,58,0.1);border:1.5px solid rgba(255,69,58,0.3);color:#FF453A;width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            ${SVG_X}
           </button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;box-sizing:border-box;">
-          <div style="display:flex;flex-direction:column;gap:3px;">
-            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Series</label>
-            <input class="ex-sets" type="number" value="${ex.sets || 3}" min="1"
-              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;box-sizing:border-box;">
+          <div>
+            <label style="${labelStyle}">Series</label>
+            <input class="ex-sets" type="number" value="${ex.sets || 3}" min="1" style="${inputStyle}">
           </div>
-          <div style="display:flex;flex-direction:column;gap:3px;">
-            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Reps</label>
-            <input class="ex-reps" type="text" value="${ex.reps || '10-12'}"
-              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
+          <div>
+            <label style="${labelStyle}">Reps</label>
+            <input class="ex-reps" type="text" value="${ex.reps || '10-12'}" style="${inputStyle}">
           </div>
-          <div style="display:flex;flex-direction:column;gap:3px;">
-            <label style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Desc (s)</label>
-            <input class="ex-rest" type="number" value="${ex.rest || 60}" min="0"
-              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 6px;background:var(--bg-card);color:var(--text-primary);font-family:inherit;font-size:0.85rem;outline:none;text-align:center;box-sizing:border-box;">
+          <div>
+            <label style="${labelStyle}">Descanso (seg)</label>
+            <input class="ex-rest" type="number" value="${ex.rest || 60}" min="0" style="${inputStyle}">
+          </div>
+          <div>
+            <label style="${labelStyle}">Peso (lbs)</label>
+            <input class="ex-weight" type="number" value="${ex.weight || ''}" min="0" step="2.5" placeholder="—" style="${inputStyle}">
           </div>
         </div>
       </div>
