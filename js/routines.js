@@ -131,6 +131,7 @@ const Routines = {
 
     document.getElementById('btn-new-routine').addEventListener('click', () => this.openEditor(null));
 
+    Icons.init();
     container.querySelectorAll('.routine-edit-btn').forEach(btn => {
       btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); this.openEditor(btn.dataset.id); });
     });
@@ -208,6 +209,7 @@ const Routines = {
     `;
 
     overlay.classList.add('active');
+    Icons.init();
     document.getElementById('detail-close').onclick = () => overlay.classList.remove('active');
     document.getElementById('btn-start-routine').onclick = () => {
       overlay.classList.remove('active');
@@ -376,6 +378,7 @@ const Routines = {
           <button id="rest-skip-btn" class="btn btn-secondary btn-full">Saltar descanso →</button>
         </div>
       `;
+      Icons.init();
       document.getElementById('rest-skip-btn').onclick = () => { clearInterval(timer); onDone(); };
     };
 
@@ -450,6 +453,7 @@ const Routines = {
       </div>
     `;
     overlay.classList.add('active');
+    Icons.init();
     document.getElementById('sess-finish').onclick = () => overlay.classList.remove('active');
   },
 
@@ -525,6 +529,7 @@ const Routines = {
     `;
 
     overlay.classList.add('active');
+    Icons.init();
 
     let selectedIcon = routine?.icon || '💪';
     let selectedDias = [...(routine?.dias || [])];

@@ -155,6 +155,7 @@ const App = {
       Storage.quitarVasoAgua(this.fecha);
       this._renderWater();
     });
+    Icons.init();
   },
 
   _isItemDisponible(item) {
@@ -254,6 +255,7 @@ const App = {
 
       container.appendChild(section);
     }
+    Icons.init();
   },
 
   /* Open modal to add/edit a daily routine item */
@@ -274,7 +276,7 @@ const App = {
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:460px;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="font-size:1.05rem;font-weight:800;">${isNew ? '➕ Nuevo hábito' : '✏️ Editar hábito'}</h2>
+          <h2 style="font-size:1.05rem;font-weight:800;">${isNew ? 'Nuevo hábito' : 'Editar hábito'}</h2>
           <button id="item-ed-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
         </div>
 
@@ -306,6 +308,7 @@ const App = {
     let selectedIcon = existing?.icon || '💧';
     let selectedSec  = existing?.seccion || defaultSec;
 
+    Icons.init();
     document.getElementById('item-ed-close').onclick = () => overlay.classList.remove('active');
 
     overlay.querySelectorAll('.ic-btn').forEach(btn => {
@@ -345,7 +348,7 @@ const App = {
       overlay.classList.remove('active');
       this._renderChecklist();
       this._renderStats();
-      showToast(isNew ? '✅ Hábito agregado' : '✅ Hábito actualizado');
+      showToast(isNew ? 'Hábito agregado' : 'Hábito actualizado');
     });
   },
 
