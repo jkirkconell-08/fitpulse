@@ -1,23 +1,48 @@
 /* =========================================================
-   NutriTrack - Lógica Principal (Checklist Diario)
+   FitPulse - Rutina Diaria del "Hoy" (editable por usuario)
    ========================================================= */
 
-const CHECKLIST_ITEMS = [
-  { id: 'agua_manana',       label: 'Agua al levantarse',           hora: '05:30', gymOnly: false, icon: '💧', seccion: 'manana' },
-  { id: 'pre_entreno',       label: 'Pre-entreno (banano/galletas)', hora: '05:30', gymOnly: true,  icon: '🍌', seccion: 'manana' },
-  { id: 'gym',               label: 'Gym completado',               hora: '05:30', gymOnly: true,  icon: '🏋️', seccion: 'manana' },
-  { id: 'desayuno_postgym',  label: 'Desayuno post-gym',            hora: '07:00', gymOnly: false, icon: '🍳', seccion: 'manana' },
-  { id: 'merienda_manana',   label: 'Merienda mañana',              hora: '09:30', gymOnly: false, icon: '🥤', seccion: 'manana' },
-  { id: 'almuerzo',          label: 'Almuerzo',                     hora: '11:30', gymOnly: false, icon: '🍽️', seccion: 'tarde' },
-  { id: 'merienda_tarde',    label: 'Merienda tarde',               hora: '14:30', gymOnly: false, icon: '🍎', seccion: 'tarde' },
-  { id: 'cena',              label: 'Cena',                         hora: '18:00', gymOnly: false, icon: '🥗', seccion: 'noche' },
-  { id: 'agua_2L',           label: '2 litros de agua en el día',   hora: '00:00', gymOnly: false, icon: '💧', seccion: 'general' },
-  { id: 'dormir_10pm',       label: 'Dormir antes de 10:00pm',      hora: '21:00', gymOnly: false, icon: '🌙', seccion: 'noche' }
+const DEFAULT_DAILY_ITEMS = [
+  { id: 'agua_manana',      label: 'Agua al levantarse',            icon: '💧', seccion: 'manana',  gymOnly: false },
+  { id: 'pre_entreno',      label: 'Pre-entreno (banano/galletas)', icon: '🍌', seccion: 'manana',  gymOnly: true  },
+  { id: 'gym',              label: 'Gym completado',                icon: '🏋️', seccion: 'manana',  gymOnly: true  },
+  { id: 'desayuno_postgym', label: 'Desayuno completo',            icon: '🍳', seccion: 'manana',  gymOnly: false },
+  { id: 'merienda_manana',  label: 'Merienda mañana',              icon: '🥤', seccion: 'manana',  gymOnly: false },
+  { id: 'almuerzo',         label: 'Almuerzo',                     icon: '🍽️', seccion: 'tarde',   gymOnly: false },
+  { id: 'merienda_tarde',   label: 'Merienda tarde',               icon: '🍎', seccion: 'tarde',   gymOnly: false },
+  { id: 'cena',             label: 'Cena',                         icon: '🥗', seccion: 'noche',   gymOnly: false },
+  { id: 'agua_2L',          label: '2 litros de agua hoy',         icon: '💧', seccion: 'general', gymOnly: false },
+  { id: 'dormir_10pm',      label: 'Dormir antes de 10:00pm',      icon: '🌙', seccion: 'noche',   gymOnly: false }
 ];
 
+const DAILY_ROUTINE_KEY = 'fitpulse_daily_routine';
+
+function getDailyItems() {
+  const raw = localStorage.getItem(DAILY_ROUTINE_KEY);
+  if (raw) { try { return JSON.parse(raw); } catch {} }
+  const defaults = JSON.parse(JSON.stringify(DEFAULT_DAILY_ITEMS));
+  localStorage.setItem(DAILY_ROUTINE_KEY, JSON.stringify(defaults));
+  return defaults;
+}
+
+function saveDailyItems(items) {
+  localStorage.setItem(DAILY_ROUTINE_KEY, JSON.stringify(items));
+  if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
+}
+
+function getItemsForDate(fecha) {
+  const d = new Date(fecha + 'T12:00:00');
+  const diaSemana = d.getDay();
+  const config = Storage.obtenerConfig();
+  const diasGym = config.diasGym || [1, 2, 3, 4, 5];
+  const esGym = diasGym.includes(diaSemana);
+  return getDailyItems().filter(item => !item.gymOnly || esGym);
+}
+
+
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const DIAS_CORTO = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DIAS_CORTO  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 /* ─── Helper: dark mode init (shared) ─── */
 function initDarkMode() {
@@ -31,19 +56,6 @@ function initDarkMode() {
       Storage.setDarkMode(document.body.classList.contains('dark'));
     });
   }
-}
-
-/* ─── Helper: get items for a specific date ─── */
-function getItemsForDate(fecha) {
-  const d = new Date(fecha + 'T12:00:00');
-  const diaSemana = d.getDay();
-  const config = Storage.obtenerConfig();
-  const diasGym = config.diasGym || [1, 2, 3, 4, 5];
-  const esGym = diasGym.includes(diaSemana);
-  return CHECKLIST_ITEMS.filter(item => {
-    if (item.gymOnly && !esGym) return false;
-    return true;
-  });
 }
 
 /* ─── Helper: toast ─── */
@@ -159,43 +171,182 @@ const App = {
     const dia = Storage.obtenerDia(this.fecha);
     const checklist = dia ? dia.checklist : {};
 
-    const secciones = {
-      manana: { titulo: 'Mañana', items: [] }, tarde: { titulo: 'Tarde', items: [] },
-      noche: { titulo: 'Noche', items: [] }, general: { titulo: 'General', items: [] }
-    };
-    items.forEach(item => (secciones[item.seccion] || secciones.general).items.push(item));
+    const SECCIONES = [
+      { key: 'manana',  titulo: '🌅 Mañana' },
+      { key: 'tarde',   titulo: '☀️ Tarde' },
+      { key: 'noche',   titulo: '🌙 Noche' },
+      { key: 'general', titulo: '📌 General' }
+    ];
 
     container.innerHTML = '';
-    for (const [, seccion] of Object.entries(secciones)) {
-      if (seccion.items.length === 0) continue;
+
+    for (const sec of SECCIONES) {
+      const secItems = items.filter(i => i.seccion === sec.key);
+
       const section = document.createElement('div');
       section.className = 'checklist-section fade-in';
-      const title = document.createElement('div');
-      title.className = 'checklist-section-title';
-      title.textContent = seccion.titulo;
-      section.appendChild(title);
 
-      const card = document.createElement('div');
-      card.className = 'checklist-card';
-      seccion.items.forEach(item => {
-        const isChecked = checklist[item.id] === true;
-        const disponible = this._isItemDisponible(item);
-        const el = document.createElement('div');
-        el.className = `check-item${isChecked ? ' checked' : ''}${!disponible ? ' disabled' : ''}`;
-        el.innerHTML = `
-          <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="check-icon">${item.icon}</div>
-          <div class="check-content">
-            <div class="check-label">${item.label}</div>
-            ${!disponible ? `<div class="check-time pending">Disponible a las ${item.hora}</div>` : ''}
-          </div>
-        `;
-        if (disponible) el.addEventListener('click', () => this._toggleItem(item.id, el));
-        card.appendChild(el);
+      // Section title row with edit button
+      const titleRow = document.createElement('div');
+      titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+      titleRow.innerHTML = `
+        <div class="checklist-section-title" style="margin-bottom:0;">${sec.titulo}</div>
+        <button class="btn-add-routine-item" data-sec="${sec.key}"
+          style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:#A78BFA;
+                 padding:4px 10px;border-radius:8px;font-size:0.75rem;font-weight:700;cursor:pointer;">+ Agregar</button>
+      `;
+      section.appendChild(titleRow);
+
+      if (secItems.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'font-size:0.8rem;color:var(--text-muted);padding:10px 0 4px;font-style:italic;';
+        empty.textContent = 'Ningún hábito — pulsa + Agregar';
+        section.appendChild(empty);
+      } else {
+        const card = document.createElement('div');
+        card.className = 'checklist-card';
+        secItems.forEach(item => {
+          const isChecked = checklist[item.id] === true;
+          const el = document.createElement('div');
+          el.className = `check-item${isChecked ? ' checked' : ''}`;
+          el.style.cssText = 'gap:10px;';
+          el.innerHTML = `
+            <div class="check-box"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="check-icon">${item.icon}</div>
+            <div class="check-content" style="flex:1;">
+              <div class="check-label">${item.label}</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0;">
+              <button class="item-edit-btn" data-id="${item.id}"
+                style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;cursor:pointer;padding:4px;">✏️</button>
+              <button class="item-del-btn" data-id="${item.id}"
+                style="background:none;border:none;color:var(--text-muted);font-size:0.9rem;cursor:pointer;padding:4px;">🗑️</button>
+            </div>
+          `;
+          el.querySelector('.check-box').addEventListener('click', (e) => { e.stopPropagation(); this._toggleItem(item.id, el); });
+          el.querySelector('.check-label').addEventListener('click', (e) => { e.stopPropagation(); this._toggleItem(item.id, el); });
+          el.querySelector('.check-icon').addEventListener('click', (e) => { e.stopPropagation(); this._toggleItem(item.id, el); });
+
+          el.querySelector('.item-edit-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._openItemEditor(item.id, sec.key);
+          });
+          el.querySelector('.item-del-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`¿Eliminar "${item.label}"?`)) {
+              const all = getDailyItems().filter(i => i.id !== item.id);
+              saveDailyItems(all);
+              this._renderChecklist();
+              this._renderStats();
+              showToast('Hábito eliminado');
+            }
+          });
+
+          card.appendChild(el);
+        });
+        section.appendChild(card);
+      }
+
+      // Wire add button
+      section.querySelector('.btn-add-routine-item').addEventListener('click', () => {
+        this._openItemEditor(null, sec.key);
       });
-      section.appendChild(card);
+
       container.appendChild(section);
     }
+  },
+
+  /* Open modal to add/edit a daily routine item */
+  _openItemEditor(itemId, defaultSec = 'manana') {
+    const existing = itemId ? getDailyItems().find(i => i.id === itemId) : null;
+    const isNew = !existing;
+    const ICONS = ['💧','🍌','🏋️','🍳','🥤','🍽️','🍎','🥗','🌙','📌','🏃','💊','🧘','📖','🚿','🛏️','☕','🥦','🧠','⚡'];
+    const SECS = [
+      { key: 'manana', label: '🌅 Mañana' },
+      { key: 'tarde',  label: '☀️ Tarde' },
+      { key: 'noche',  label: '🌙 Noche' },
+      { key: 'general',label: '📌 General' }
+    ];
+
+    // Use nota-overlay as modal (repurpose)
+    const overlay = document.getElementById('nota-overlay');
+    overlay.classList.add('active');
+    overlay.innerHTML = `
+      <div class="overlay-content" style="max-width:460px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.05rem;font-weight:800;">${isNew ? '➕ Nuevo hábito' : '✏️ Editar hábito'}</h2>
+          <button id="item-ed-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+        </div>
+
+        <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Descripción</label>
+        <input id="item-ed-label" type="text" value="${existing?.label || ''}" placeholder="Ej: Tomar vitaminas"
+          style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.95rem;outline:none;margin-bottom:14px;">
+
+        <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">Ícono</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;" id="icon-grid">
+          ${ICONS.map(ic => `<button class="ic-btn" data-ic="${ic}"
+            style="width:40px;height:40px;border-radius:10px;border:2px solid ${existing?.icon===ic?'#7C3AED':'var(--border)'};background:${existing?.icon===ic?'rgba(124,58,237,0.15)':'var(--bg-input)'};font-size:1.2rem;cursor:pointer;">${ic}</button>`).join('')}
+        </div>
+
+        <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">Momento del día</label>
+        <div style="display:flex;gap:8px;margin-bottom:14px;" id="sec-grid">
+          ${SECS.map(s => `<button class="sec-btn" data-sec="${s.key}"
+            style="flex:1;padding:9px 4px;border-radius:10px;font-size:0.72rem;font-weight:700;border:1.5px solid ${(existing?.seccion||defaultSec)===s.key?'#7C3AED':'var(--border)'};background:${(existing?.seccion||defaultSec)===s.key?'rgba(124,58,237,0.15)':'var(--bg-input)'};color:${(existing?.seccion||defaultSec)===s.key?'#A78BFA':'var(--text-muted)'};cursor:pointer;">${s.label}</button>`).join('')}
+        </div>
+
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;font-weight:700;margin-bottom:20px;cursor:pointer;">
+          <input type="checkbox" id="item-ed-gym" ${existing?.gymOnly?'checked':''} style="width:18px;height:18px;accent-color:#7C3AED;">
+          Solo en días de gym
+        </label>
+
+        <button id="item-ed-save" class="btn btn-primary btn-full">${isNew ? 'Agregar hábito' : 'Guardar cambios'}</button>
+      </div>
+    `;
+
+    let selectedIcon = existing?.icon || '💧';
+    let selectedSec  = existing?.seccion || defaultSec;
+
+    document.getElementById('item-ed-close').onclick = () => overlay.classList.remove('active');
+
+    overlay.querySelectorAll('.ic-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedIcon = btn.dataset.ic;
+        overlay.querySelectorAll('.ic-btn').forEach(b => {
+          b.style.borderColor = b.dataset.ic === selectedIcon ? '#7C3AED' : 'var(--border)';
+          b.style.background  = b.dataset.ic === selectedIcon ? 'rgba(124,58,237,0.15)' : 'var(--bg-input)';
+        });
+      });
+    });
+
+    overlay.querySelectorAll('.sec-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedSec = btn.dataset.sec;
+        overlay.querySelectorAll('.sec-btn').forEach(b => {
+          b.style.borderColor = b.dataset.sec === selectedSec ? '#7C3AED' : 'var(--border)';
+          b.style.background  = b.dataset.sec === selectedSec ? 'rgba(124,58,237,0.15)' : 'var(--bg-input)';
+          b.style.color       = b.dataset.sec === selectedSec ? '#A78BFA' : 'var(--text-muted)';
+        });
+      });
+    });
+
+    document.getElementById('item-ed-save').addEventListener('click', () => {
+      const label = document.getElementById('item-ed-label').value.trim();
+      if (!label) { document.getElementById('item-ed-label').focus(); return; }
+      const gymOnly = document.getElementById('item-ed-gym').checked;
+
+      const all = getDailyItems();
+      if (isNew) {
+        all.push({ id: 'habit_' + Date.now(), label, icon: selectedIcon, seccion: selectedSec, gymOnly });
+      } else {
+        const idx = all.findIndex(i => i.id === itemId);
+        if (idx >= 0) all[idx] = { ...all[idx], label, icon: selectedIcon, seccion: selectedSec, gymOnly };
+      }
+      saveDailyItems(all);
+      overlay.classList.remove('active');
+      this._renderChecklist();
+      this._renderStats();
+      showToast(isNew ? '✅ Hábito agregado' : '✅ Hábito actualizado');
+    });
   },
 
   _toggleItem(id, el) {

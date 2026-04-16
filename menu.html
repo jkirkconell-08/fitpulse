@@ -3,26 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="FitPulse - Menú"><meta name="theme-color" content="#6C3CE1">
+  <meta name="description" content="FitPulse - Menú">
+  <meta name="theme-color" content="#0D0D0D">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%236C3CE1'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
-  <title>FitPulse - Menú</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%237C3AED'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <title>FitPulse - Más</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon">FP</div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div></header>
+  <header class="app-header">
+    <a href="dashboard.html" class="logo"><div class="logo-icon">FP</div><span class="logo-text">FitPulse</span></a>
+    <div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div>
+  </header>
   <main class="container">
-    <h1 class="page-title">Menú</h1><p class="page-subtitle">Todas las opciones</p>
-    <div class="menu-grid">
+    <h1 class="page-title">Más</h1>
+    <p class="page-subtitle">Todas las opciones</p>
+
+    <!-- Account card -->
+    <div id="account-card" class="config-card fade-in" style="margin-bottom:14px;"></div>
+
+    <!-- Cloud sync status -->
+    <div id="sync-card" class="config-card fade-in" style="margin-bottom:14px;"></div>
+
+    <!-- Menu grid -->
+    <div class="menu-grid fade-in">
       <a href="progreso.html" class="menu-card"><div class="menu-card-icon">⚖️</div><div class="menu-card-label">Peso</div><div class="menu-card-desc">Registro semanal</div></a>
       <a href="medidas.html" class="menu-card"><div class="menu-card-icon">📏</div><div class="menu-card-label">Medidas</div><div class="menu-card-desc">Cintura, pecho, brazos</div></a>
       <a href="historial.html" class="menu-card"><div class="menu-card-icon">📅</div><div class="menu-card-label">Historial</div><div class="menu-card-desc">Últimos 30 días</div></a>
-      <a href="config.html" class="menu-card"><div class="menu-card-icon">⚙️</div><div class="menu-card-label">Config</div><div class="menu-card-desc">Perfil y datos</div></a>
+      <a href="config.html" class="menu-card"><div class="menu-card-icon">⚙️</div><div class="menu-card-label">Configuración</div><div class="menu-card-desc">Perfil y datos</div></a>
+      <a href="privacy.html" class="menu-card"><div class="menu-card-icon">🔒</div><div class="menu-card-label">Privacidad</div><div class="menu-card-desc">Política de datos</div></a>
     </div>
-    <!-- User account -->
-    <div class="config-card fade-in" style="margin-top:20px;" id="account-card"></div>
-    <div id="menu-stats" class="config-card fade-in" style="margin-top:12px;"></div>
   </main>
   <nav class="bottom-nav">
     <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Inicio</span></a>
@@ -31,36 +42,70 @@
     <a href="ejercicios.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg><span>Gym</span></a>
     <a href="menu.html" class="nav-item active"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg><span>Más</span></a>
   </nav>
-  <script src="js/firebase-config.js"></script><script src="js/storage.js"></script><script src="js/auth.js"></script><script src="js/cloud-sync.js"></script><script src="js/app.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       await Auth.init();
-      if (!Auth.requireAuth()) return;
+      const ok = await Auth.requireAuth();
+      if (!ok) return;
       initDarkMode();
+      Auth._updateUI();
+
       // Account card
       const user = Auth.getUser();
-      const acctEl = document.getElementById('account-card');
-      acctEl.innerHTML = `
-        <h3>👤 Cuenta</h3>
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin:8px 0;">${user?.email || 'Modo offline'}</p>
-        <button id="btn-logout" class="btn btn-secondary btn-full" style="margin-top:8px;">Cerrar sesión</button>
+      const isOffline = localStorage.getItem('fitpulse_offline') === 'true';
+      document.getElementById('account-card').innerHTML = `
+        <h3 style="margin-bottom:10px;">👤 Cuenta</h3>
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${user?.photo || user?.photoURL
+            ? `<img src="${user.photo || user.photoURL}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;" alt="">`
+            : `<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A78BFA);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#fff;">${(user?.name||user?.displayName||'?')[0]}</div>`
+          }
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">${user?.name || user?.displayName || 'Sin nombre'}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">${user?.email || (isOffline ? 'Modo offline' : 'Sin cuenta')}</div>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn btn-secondary btn-full" style="margin-top:14px;">
+          ${isOffline ? '🔑 Iniciar sesión con Google' : '🚪 Cerrar sesión'}
+        </button>
       `;
-      document.getElementById('btn-logout').addEventListener('click', () => Auth.logout());
-      // Quick stats
-      const config = Storage.obtenerConfig();
-      const pesos = Storage.obtenerPesos();
-      const last = pesos.registros[pesos.registros.length - 1];
-      document.getElementById('menu-stats').innerHTML = `
-        <h3>📊 Resumen rápido</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
-          <div class="stat-mini"><span class="valor">${last.peso}kg</span><span class="label">Peso actual</span></div>
-          <div class="stat-mini"><span class="valor">${config.meta}kg</span><span class="label">Meta</span></div>
-          <div class="stat-mini"><span class="valor">${(last.peso - config.meta).toFixed(1)}kg</span><span class="label">Faltan</span></div>
-          <div class="stat-mini"><span class="valor">${Storage.calcularRacha()}</span><span class="label">Racha</span></div>
+      document.getElementById('btn-logout').addEventListener('click', () => {
+        if (isOffline) window.location.href = 'login.html';
+        else Auth.logout();
+      });
+
+      // Sync card
+      const lastSync = localStorage.getItem('fitpulse_last_sync');
+      document.getElementById('sync-card').innerHTML = `
+        <h3 style="margin-bottom:10px;">☁️ Sincronización</h3>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
+          ${isOffline ? '⚠️ Offline — los datos se guardan solo en este dispositivo'
+            : `✅ Nube activa · ${lastSync ? 'Último sync: ' + new Date(parseInt(lastSync)).toLocaleTimeString() : 'Pendiente'}`}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-sync-up" class="btn btn-secondary" style="flex:1;font-size:0.85rem;">⬆️ Subir</button>
+          <button id="btn-sync-down" class="btn btn-secondary" style="flex:1;font-size:0.85rem;">⬇️ Descargar</button>
         </div>
       `;
+      document.getElementById('btn-sync-up').addEventListener('click', async () => {
+        if (isOffline) { showToast('Inicia sesión para sincronizar', 'warning'); return; }
+        showToast('Subiendo datos...');
+        await CloudSync.pushToCloud();
+        localStorage.setItem('fitpulse_last_sync', Date.now());
+        showToast('✅ Datos subidos a la nube');
+      });
+      document.getElementById('btn-sync-down').addEventListener('click', async () => {
+        if (isOffline) { showToast('Inicia sesión para sincronizar', 'warning'); return; }
+        showToast('Descargando desde la nube...');
+        await CloudSync.forceDownload();
+      });
     });
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
   </script>
 </body>
 </html>

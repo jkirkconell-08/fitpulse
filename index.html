@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="FitPulse - Tu checklist diario de bienestar">
-  <meta name="theme-color" content="#6C3CE1">
+  <meta name="description" content="FitPulse - Hoy">
+  <meta name="theme-color" content="#0D0D0D">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>FitPulse - Hoy</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%236C3CE1'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%237C3AED'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -19,7 +19,10 @@
   </div>
   <header class="app-header">
     <a href="dashboard.html" class="logo"><div class="logo-icon">FP</div><span class="logo-text">FitPulse</span></a>
-    <div class="header-actions"><div id="user-avatar" class="user-avatar" style="display:none"></div><div id="dark-toggle" class="dark-toggle" title="Modo oscuro"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div></div>
+    <div class="header-actions">
+      <div id="user-avatar" class="user-avatar"></div>
+      <div id="dark-toggle" class="dark-toggle" title="Modo oscuro"><span class="toggle-icon icon-sun">☀️</span><span class="toggle-icon icon-moon">🌙</span></div>
+    </div>
   </header>
   <main class="container">
     <div id="fecha-display" class="fecha-display"></div>
@@ -44,6 +47,15 @@
   <script src="js/cloud-sync.js"></script>
   <script src="js/notifications.js"></script>
   <script src="js/app.js"></script>
-  <script>document.addEventListener('DOMContentLoaded',async()=>{await Auth.init();if(!Auth.requireAuth())return;App.init();CloudSync.scheduleSync();});if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await Auth.init();
+      const ok = await Auth.requireAuth();
+      if (!ok) return;
+      App.init();
+      CloudSync.scheduleSync();
+    });
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+  </script>
 </body>
 </html>

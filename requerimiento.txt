@@ -1,4 +1,4 @@
-Necesito que se pueda sincronizar todo rapido
+Necesito que se pueda sincronizar todo rapido es deicr local y en la nube
 Necesito que el usuario haga su rutina, quizas si dejar prederetminada la qu etenemos pero que de normal el la pueda crear, editar y /o eliminar por completo
 En el onbboardinf sino sabe un dato que lo deje pasar
 Que rvise bienm la esión que cunaod inicio sesión y dentro el doy ir a otro modulo me saca al login de nuevo y si recargo me lleva al la pagna principal nuevamente

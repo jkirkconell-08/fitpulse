@@ -26,8 +26,7 @@ const CloudSync = {
       const allData = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        // Save all nutritrack/fitpulse data keys (skip user session)
-        if (key.startsWith('nutritrack_') || key === 'fitpulse_config') {
+        if (key.startsWith('nutritrack_') || key.startsWith('fitpulse_r') || key === 'fitpulse_config') {
           try { allData[key] = JSON.parse(localStorage.getItem(key)); }
           catch { allData[key] = localStorage.getItem(key); }
         }
@@ -41,6 +40,7 @@ const CloudSync = {
       }, { merge: true });
 
       this._lastSync = Date.now();
+      localStorage.setItem('fitpulse_last_sync', this._lastSync);
       console.log('☁️ Datos subidos a la nube');
     } catch (e) {
       console.error('CloudSync push error:', e);
@@ -116,7 +116,7 @@ const CloudSync = {
         const keysToRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key.startsWith('nutritrack_')) keysToRemove.push(key);
+          if (key.startsWith('nutritrack_') || key.startsWith('fitpulse_r')) keysToRemove.push(key);
         }
         keysToRemove.forEach(k => localStorage.removeItem(k));
 
@@ -141,13 +141,13 @@ const CloudSync = {
     if (!Auth.initialized || !Auth.user) return;
     // Debounce: wait 3 seconds after last change before syncing
     clearTimeout(this._saveTimer);
-    this._saveTimer = setTimeout(() => this.pushToCloud(), 3000);
+    this._saveTimer = setTimeout(() => this.pushToCloud(), 1500);
   },
 
   /* Auto-sync scheduler */
   scheduleSync() {
-    // Sync every 2 minutes
-    setInterval(() => this.pushToCloud(), 2 * 60 * 1000);
+    // Sync every 90 seconds
+    setInterval(() => this.pushToCloud(), 90 * 1000);
 
     // Sync when page is about to close
     window.addEventListener('beforeunload', () => {
