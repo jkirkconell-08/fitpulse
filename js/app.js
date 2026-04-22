@@ -449,7 +449,24 @@ const App = {
 const Historial = {
   init() {
     initDarkMode();
-    this._render();
+    this._showSkeleton();
+    // Defer actual render so skeleton paints first
+    requestAnimationFrame(() => setTimeout(() => this._render(), 16));
+  },
+
+  _showSkeleton() {
+    const container = document.getElementById('historial-container');
+    if (!container) return;
+    const skeletonItem = `
+      <div style="background:var(--bg-card);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;animation:pulse 1.5s ease-in-out infinite;">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--bg-input);flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="height:12px;background:var(--bg-input);border-radius:6px;width:40%;margin-bottom:6px;"></div>
+          <div style="height:10px;background:var(--bg-input);border-radius:6px;width:60%;"></div>
+        </div>
+        <div style="width:32px;height:32px;background:var(--bg-input);border-radius:8px;"></div>
+      </div>`;
+    container.innerHTML = skeletonItem.repeat(7);
   },
 
   _render() {

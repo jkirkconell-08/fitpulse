@@ -57,12 +57,13 @@
 }
 
 /* ---------- Light Mode ---------- */
-body.light {
+/* Applied both on html (instant, via inline script) and body (via JS) */
+html.light, body.light {
   --bg-primary:   #F2F2F7;
   --bg-secondary: #FFFFFF;
   --bg-card:      #FFFFFF;
   --bg-input:     #E5E5EA;
-  --text-primary: #000000;
+  --text-primary: #1C1C1E;
   --text-secondary:#3C3C43;
   --text-muted:   #8E8E93;
   --border:       #D1D1D6;
@@ -70,6 +71,22 @@ body.light {
   --shadow:       0 2px 8px rgba(0,0,0,0.08);
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.12);
   --overlay-bg:   rgba(0,0,0,0.6);
+}
+
+/* Keep dark explicit too */
+html.dark, body.dark, html:not(.light), body:not(.light) {
+  --bg-primary:   #0D0D0D;
+  --bg-secondary: #161616;
+  --bg-card:      #1C1C1E;
+  --bg-input:     #2C2C2E;
+  --text-primary: #FFFFFF;
+  --text-secondary: #AEAEB2;
+  --text-muted:   #636366;
+  --border:       #2C2C2E;
+  --border-light: #1C1C1E;
+  --shadow:       0 2px 8px rgba(0,0,0,0.4);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.6);
+  --overlay-bg:   rgba(0,0,0,0.85);
 }
 
 /* ---------- Reset ---------- */

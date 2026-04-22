@@ -37,7 +37,62 @@ const Auth = {
       return;
     }
 
-    // Check if Firebase config is set
+    // ⚡ FAST PATH: if we have a saved session, resolve immediately
+    // Firebase will verify in background and update if needed
+    const savedSession = localStorage.getItem('fitpulse_user');
+    if (savedSession) {
+      try {
+        this.user = JSON.parse(savedSession);
+        this._authReady = true;
+        if (this._authReadyResolve) this._authReadyResolve();
+        this._updateUI();
+        // Continue Firebase init in background (non-blocking)
+        this._initFirebaseBackground();
+        return;
+      } catch {}
+    }
+
+    // No saved session — must wait for Firebase (first login flow)
+    await this._initFirebaseAndWait();
+  },
+
+  async _initFirebaseBackground() {
+    if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'TU_API_KEY_AQUI') return;
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getAuth, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+      this.app = getApps().length > 0 ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+      this.auth = getAuth(this.app);
+      this.db = getFirestore(this.app);
+      this.initialized = true;
+
+      const { signInWithPopup, GoogleAuthProvider, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      this._authModules = { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged };
+      this._dbModule = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+      onAuthStateChanged(this.auth, (user) => {
+        if (user) {
+          this.user = user;
+          localStorage.setItem('fitpulse_user', JSON.stringify({
+            uid: user.uid, name: user.displayName, email: user.email, photo: user.photoURL
+          }));
+          if (typeof CloudSync !== 'undefined') CloudSync.pullFromCloud();
+        } else {
+          this.user = null;
+          if (localStorage.getItem('fitpulse_offline') !== 'true') {
+            localStorage.removeItem('fitpulse_user');
+          }
+        }
+        this._updateUI();
+      });
+    } catch (e) {
+      console.warn('Firebase background init error:', e);
+    }
+  },
+
+  async _initFirebaseAndWait() {
     if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'TU_API_KEY_AQUI') {
       console.warn('Firebase not configured. Running in offline mode.');
       this._checkLocalUser();
@@ -45,14 +100,12 @@ const Auth = {
       if (this._authReadyResolve) this._authReadyResolve();
       return;
     }
-
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } =
         await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
       const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
-      // Avoid re-initializing Firebase app
       this.app = getApps().length > 0 ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
       this.auth = getAuth(this.app);
       this.db = getFirestore(this.app);
@@ -61,36 +114,25 @@ const Auth = {
       this._authModules = { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged };
       this._dbModule = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
-      // onAuthStateChanged fires once immediately with current state
       onAuthStateChanged(this.auth, (user) => {
         if (user) {
           this.user = user;
           localStorage.setItem('fitpulse_user', JSON.stringify({
-            uid: user.uid,
-            name: user.displayName,
-            email: user.email,
-            photo: user.photoURL
+            uid: user.uid, name: user.displayName, email: user.email, photo: user.photoURL
           }));
-          if (typeof CloudSync !== 'undefined') {
-            CloudSync.pullFromCloud();
-          }
+          if (typeof CloudSync !== 'undefined') CloudSync.pullFromCloud();
         } else {
           this.user = null;
-          // Only clear if not in offline mode
           if (localStorage.getItem('fitpulse_offline') !== 'true') {
             localStorage.removeItem('fitpulse_user');
           }
         }
-
-        // Auth state is now known — resolve the promise
         if (!this._authReady) {
           this._authReady = true;
           if (this._authReadyResolve) this._authReadyResolve();
         }
-
         this._updateUI();
       });
-
     } catch (e) {
       console.error('Firebase init error:', e);
       this._checkLocalUser();
