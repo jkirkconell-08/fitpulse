@@ -1403,66 +1403,119 @@ body.dark .check-item.checked {
 }
 
 /* ── Date Navigator ── */
+/* ═══════════════════════════════════════════
+   DATE NAVIGATOR — Premium pill design
+   ═══════════════════════════════════════════ */
 .date-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  gap: 8px;
+  border-radius: 18px;
+  padding: 8px 10px;
+  margin-bottom: 16px;
+  gap: 6px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+/* Subtle brand gradient top border */
+.date-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.4) 0%, transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.date-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+.date-nav-btn:hover:not(:disabled) {
+  background: rgba(124,58,237,0.15);
+  border-color: rgba(124,58,237,0.4);
+  color: var(--brand-light);
+  transform: scale(1.05);
+}
+.date-nav-btn:active:not(:disabled) { transform: scale(0.95); }
+.date-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 .date-nav-center {
   flex: 1;
-  text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 2px;
+  position: relative;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: background 0.15s;
 }
+.date-nav-center:hover { background: var(--bg-input); }
 
 .date-nav-label {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
-.date-nav-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 8px;
+.date-nav-sublabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
   display: flex;
   align-items: center;
-  transition: background 0.15s;
+  gap: 3px;
 }
-.date-nav-btn:hover { background: var(--bg-input); }
-.date-nav-btn:disabled { cursor: default; }
 
 .date-nav-edit {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--brand-light);
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 6px;
-  display: flex;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
+  opacity: 0.7;
 }
-.date-nav-edit:hover { color: var(--brand); }
+.date-nav-center:hover .date-nav-edit { opacity: 1; }
 
 .date-picker-hidden {
   position: absolute;
+  inset: 0;
   opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  color-scheme: dark;
 }
+html.light .date-picker-hidden { color-scheme: light; }
 
 .cal-remaining {
   font-size: 0.85rem;

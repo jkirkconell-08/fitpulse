@@ -229,17 +229,20 @@ const Comidas = {
       <!-- Navegador de fecha -->
       <div class="date-nav fade-in">
         <button id="btn-prev-day" class="date-nav-btn" title="Día anterior">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div class="date-nav-center">
+        <div class="date-nav-center" id="date-nav-center-click">
           <span class="date-nav-label">${fechaLabel}</span>
+          <span class="date-nav-sublabel">
+            ${isToday ? 'Toca para cambiar de día' : this.fecha}
+            <span class="date-nav-edit">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </span>
           <input type="date" id="date-picker" value="${this.fecha}" max="${Storage.today()}" class="date-picker-hidden">
-          <button id="btn-pick-date" class="date-nav-edit">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </button>
         </div>
-        <button id="btn-next-day" class="date-nav-btn" ${isToday ? 'disabled style="opacity:0.3;"' : ''} title="Día siguiente">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        <button id="btn-next-day" class="date-nav-btn" ${isToday ? 'disabled' : ''} title="Día siguiente">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
 
@@ -307,9 +310,7 @@ const Comidas = {
     // Date navigation
     document.getElementById('btn-prev-day').addEventListener('click', () => this._changeDay(-1));
     document.getElementById('btn-next-day')?.addEventListener('click', () => this._changeDay(1));
-    document.getElementById('btn-pick-date').addEventListener('click', () => {
-      document.getElementById('date-picker').showPicker?.() || document.getElementById('date-picker').click();
-    });
+    // The date input is layered over center — changes fire on select
     document.getElementById('date-picker').addEventListener('change', (e) => {
       if (e.target.value) { this.fecha = e.target.value; this._render(); }
     });
