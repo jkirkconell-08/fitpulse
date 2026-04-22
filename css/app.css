@@ -2096,7 +2096,27 @@ body.dark .check-item.checked {
 }
 
 .menu-card-icon {
-  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A78BFA;
+  margin-bottom: 4px;
+  transition: background 0.2s;
+}
+
+.menu-card:hover .menu-card-icon {
+  background: rgba(124, 58, 237, 0.2);
+}
+
+.menu-card-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: #A78BFA;
 }
 
 .menu-card-label {

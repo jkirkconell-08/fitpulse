@@ -167,8 +167,8 @@ const Storage = {
   },
 
   /* ---------- dark mode ---------- */
-  getDarkMode() { const v = localStorage.getItem('nutritrack_dark'); return v === null ? true : v === 'true'; },
-  setDarkMode(val) { localStorage.setItem('nutritrack_dark', String(val)); },
+  getDarkMode() { return localStorage.getItem('fitpulse_dark') || 'dark'; },
+  setDarkMode(val) { localStorage.setItem('fitpulse_dark', val); },
 
   /* ---------- racha ---------- */
   calcularRacha() {

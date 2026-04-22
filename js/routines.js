@@ -57,9 +57,15 @@ const Routines = {
   },
 
   _initDefaults() {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(DEFAULT_ROUTINES));
-    if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
-    return JSON.parse(JSON.stringify(DEFAULT_ROUTINES));
+    // Give each default routine a unique ID based on timestamp to avoid collisions
+    const ts = Date.now();
+    const defaults = DEFAULT_ROUTINES.map((r, i) => ({
+      ...r,
+      id: `routine_${ts}_${i}`,
+      dias: [] // dias handled by new gym logic in Sprint 4
+    }));
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(defaults));
+    return JSON.parse(JSON.stringify(defaults));
   },
 
   getById(id) {

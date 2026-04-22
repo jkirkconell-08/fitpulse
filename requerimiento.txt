@@ -2,3 +2,402 @@ Necesito que se pueda sincronizar todo rapido es deicr local y en la nube
 Necesito que el usuario haga su rutina, quizas si dejar prederetminada la qu etenemos pero que de normal el la pueda crear, editar y /o eliminar por completo
 En el onbboardinf sino sabe un dato que lo deje pasar
 Que rvise bienm la esión que cunaod inicio sesión y dentro el doy ir a otro modulo me saca al login de nuevo y si recargo me lleva al la pagna principal nuevamente
+
+
+
+----------------------
+ONBOARDING
+Que el usuario elija las medidas de unidad que quiere llevar en su rutina, peso, altura, etc. Es decir Libras, Kilos, Metros, etc. Lo mismo para los pesos en los ejercicios.
+
+COMIDAS
+Poder editar los días anteriores de comida por si se me olvido ingresarla.
+Añdair más vairables de comida como sopas de res, pollo, baleadas, pastelitos, ensalda de papa, pensando en Hnduiras y dulces como bonmbones, chicles, confites y asi todo lo que consideres como tacos, pupusas, etc.
+Ver historial de comidas
+
+En los avances del dia de proteina, carbos, grasas que muestre las consumidas vs la cantidad que realemnte debería de consumir.
+Al ingresar comida que permita seleccionar varios items para una comida, en evez de poner primero pan, luejo jamon, luego huevo, que en una sola selección peuda gregar los 3 y asignarlo a donde el quiera.
+
+Hoy
+El bton de editar y eliminar rutinas son emojis, cambia a iconos que ya tenemos.
+
+GYM
+Cambiar la logica de dias de ntrenamiento que mejor solo ingrese las rutinas que quiere hacer sin seleccionar el día de la semana y que cuando el entre le pregunte que turina hara hoy, y que vaya marcando por ejemplo "Esta rutina la hiciste el lunes" y pueda repeteirl incluso si el quere y que tome que día es para marcar ese día como entrenado.
+
+OTROS
+Hacer funcionar el modo claro que acutlamente solo funciona el modo oscuro, y no es solo revertir colores sino que tenga logica.
+Actualizar metricas de gimnasio en el modulo principal del dashboard.
+Mejorar el diseño de la imagen de compartir resumen semanal.
+Agregar la funcinalidad de añadir cuando sale a correr, el registro de recorrido, fecha,  calría quemadas (Las calculas sino las ingresa) no se que tan viable sea incluso la posibilidad de integrarlo con algunas app de reloj inteligente como huawei, sansung u otras.. esto no es tan necesairo.
+Gráfica de progreso de peso — Actualmente es solo una lista, debería ser visual (línea de Chart.js)
+Historial de gym visual — Ver volumen total levantado por semana
+Notificaciones de recordatorio — "No has registrado tus comidas hoy"
+Share individual de ejercicios — "Hoy hice 4x8 Press Banca a 135 lbs"
+La notificación de pruebas llega, las otras no.. igual añade el modulo donde pueda personalizar que notificaciones quiero recibir. Por ejemplo si creo una rutina que de esa rutina quiero recibir notificaicones y de que tipo perioidcas o algo.
+La sincronización en la nube se debe hacer contante y no manual, revisalo nada más.
+Asegurate que todos los icnoos del modulo más sean del mimo color tanto peso, emdidas, historial, configuración y proivacidad.
+En el modudlod e configuración los titulos tiene emojsi. quitalo y cambia por iconos. Como los botones de sincronización que hay en ese modulo.
+Al iniciar sesión con una cuenta de gmail que no se llama Jorge le puede mostrar en la binevenida Hola Jorge, mira si el usuario ingresa el nombre en el onborading y sino tomalo de google.
+Al entrar solo para visualizar no hay manera de volver aL Llogin, revisa que se pueda cerrar sesión o volver al login apr ainciar sesión.
+Si entra como usuairo ocal tiene que habe runa opciónd e inciar sesión y manetener todos su datos en la nube sin que s eborre nada.
+Al entrar solo apra visualizar debe haber datos ficticios para que pueda ver la app, sin poder agregar nada o modificar los datos.
+
+MEDIDAS CORPORALES
+Cmabiar todos los mojis del fomrulario por iconos
+
+Historial
+Revisa wque el modulo historial este completo y funcional.
+
+En cuanto a siseño
+
+Skeletons de carga — Al abrir la app hay un flash en blanco antes de que cargue el contenido
+Vibración háptica — En mobile PWA, los botones de Gym deberían vibrar al completar una serie (navigator.vibrate(50))
+Animación entre ejercicios — La transición al siguiente ejercicio en sesión es abrupta
+
+
+Me habias mencionad habian unos erroes tecnicos, revisalo: Técnico
+app.js está muy pesado (741 líneas) — se puede modularizar
+Las rutinas por defecto usan IDs tipo default_push que colisionan si el user las edita y borra
+
+Haz pruebas de todo el siSstema en busca de BUG
+
+
+Por ultimo: Necesito que revises mi aplicación PWA y su comportamiento cuando es empaquetada como APK.
+
+Contexto:
+- Es una PWA (Progressive Web App)
+- Fue convertida a APK usando un builder web (WebView wrapper)
+- Actualmente, al abrir la app en Android, se muestra la barra con la URL arriba (no se ve como app nativa)
+
+Objetivo:
+Quiero que la app se comporte como una aplicación nativa:
+- Sin barra de URL
+- Sin navegación del navegador
+- En modo standalone o fullscreen
+- Experiencia limpia tipo app instalada desde Play Store
+
+Tareas que debes realizar:
+
+1. Revisar configuración PWA:
+   - manifest.json (display, start_url, scope, theme_color, etc.)
+   - service worker
+   - comportamiento de instalación
+
+2. Determinar si el problema es:
+   - mala configuración de la PWA
+   - limitación del APK builder (WebView)
+
+3. Proponer solución técnica:
+   - Ajustes necesarios en la PWA
+   - Si es necesario migrar a:
+     - Trusted Web Activity (TWA)
+     - Capacitor / wrapper nativo
+
+4. Si recomiendas TWA:
+   - Dame pasos exactos para implementarlo
+   - Qué necesito configurar en mi dominio (HTTPS, Digital Asset Links)
+
+5. Validaciones:
+   - Cómo probar que ya no aparecerá la barra
+   - Cómo verificar que cumple requisitos para Play Store
+
+6. BONUS:
+   - Revisar si mi app cumple criterios de instalación como PWA real (Lighthouse)
+
+--------- CREAR LANDING PAGE DE la APLICACIÓN, SIN EMOJIS SOLO ICNOOS SI USAS. Que sea atractriva y se pueda descargar de ahi mismo la app o dirigir a la play store.
+-------- para v3 más adelante Sistema de rachas y puntuación y logros, ejemplo comer, generar rutinas, pero claro cupamos vlaidar que los datos ingresados sean rales y no solo que el usuarioacceda porque si. esto no se como lo hariamos.
+
+
+Revisando todo esto crea un plan con cada uno de los datlles en un nuevo archivo para llevar el contorl de lo que esta hcho y delo que no separado por vrsiones incluso agregando una v4 que tu creas podriamos miplementar
+
+
+
+
+# FitPulse — Roadmap de Desarrollo
+
+> **Estado general:** PWA funcional con módulos core estables. Pasando de MVP a producto completo.  
+> **Última actualización:** 2026-04-22
+
+---
+
+## Leyenda
+- `[x]` Completado
+- `[~]` Parcialmente hecho / mejorable
+- `[ ]` Pendiente
+- `[!]` Bloqueo o riesgo técnico
+
+---
+
+## ✅ v1.0 — MVP Base (Completado)
+
+- [x] Estructura PWA (manifest, service worker, installable)
+- [x] Login con Google + modo offline/local
+- [x] Checklist diario de hábitos
+- [x] Módulo de comidas con base de datos de alimentos
+- [x] Registro de agua
+- [x] Módulo de gym — CRUD de rutinas
+- [x] Sesión de gym paso a paso con timer de descanso
+- [x] Dashboard semanal con gráficas de barras
+- [x] Registro de peso con gráfica Chart.js
+- [x] Medidas corporales
+- [x] Historial de 30 días
+- [x] Configuración de perfil
+- [x] Sincronización con Firebase Firestore
+- [x] Dark mode
+
+---
+
+## 🔧 v1.5 — Estabilización y Rebranding (Completado en sesión actual)
+
+- [x] Migrar de emojis a Lucide Icons CDN en toda la app
+- [x] Sistema de iconos centralizado (`js/icons.js`)
+- [x] Logo oficial en login y encabezados (38×38px)
+- [x] Fix módulo gym: métodos fuera del objeto `Routines`
+- [x] Fix persistencia: rutinas por defecto no se recrean al borrar
+- [x] Sesión de gym paso a paso con registro de reps
+- [x] Campo Peso (lbs) en formulario de ejercicios
+- [x] Fix formulario ejercicios responsive (overflow en mobile)
+- [x] Fix módulo de peso: IDs incorrectos + restricción de lunes eliminada
+- [x] Fix botón "Cerrar sesión" con ícono correcto
+- [x] Fix racha mostrando texto plano `Icons.get(...)`
+- [x] Fix historial de peso como tarjetas modernas
+- [x] Service Worker bumpeado a v5 para forzar cache clear
+- [x] Aplicar mismo fix de peso en NutriTrack
+
+---
+
+## 🚀 v2.0 — Funcionalidades Core (SIGUIENTE SPRINT)
+
+### 🔴 Crítico — Bugs confirmados pendientes
+
+- [ ] **IDs de rutinas por defecto** (`default_push`, etc.) colisionan si el usuario edita y borra — migrar a UUID
+- [ ] **app.js muy pesado** (741 líneas) — modularizar en: `habitos.js`, `agua.js`, `fecha.js`, `progreso.js`
+- [ ] **Modo claro roto** — no es inversión de colores, requiere paleta light con variables CSS propias
+- [ ] **Botones editar/eliminar en "Hoy"** siguen siendo emojis — cambiar a SVG inline
+- [ ] **Iconos del módulo Más** deben tener color consistente (actualmente sin color definido)
+- [ ] **Config.html** tiene emojis en títulos y botones de sincronización
+
+### 🟡 ONBOARDING — Selección de unidades
+
+- [ ] Añadir paso de selección de unidades al onboarding:
+  - Peso corporal: **kg / lbs**
+  - Altura: **cm / ft+in**
+  - Peso en ejercicios: **kg / lbs**
+- [ ] Guardar preferencia en `Storage.obtenerConfig()` → campo `unidades: { peso, altura, ejercicio }`
+- [ ] Aplicar conversión en toda la app (dashboard, gym session, comidas, progreso)
+- [ ] Respetar unidad elegida en el campo "Peso (lbs)" del formulario de ejercicios
+
+### 🟡 COMIDAS — Mejoras
+
+- [ ] **Editar días anteriores** — añadir selector de fecha (≤ hoy) en la vista de comidas
+- [ ] **Multi-selección de alimentos** — modal de "carrito" donde agregas varios ítems y al final asignas todos a una comida
+- [ ] **Macros consumidos vs recomendados** — mostrar `consumido / meta` (ej: `45g / 150g proteína`)
+- [ ] **Ver historial de comidas** — vista de últimos 14 días con total calórico por día
+- [ ] **Ampliar base de datos** con alimentos hondureños:
+  - Platos: baleadas, sopa de res, sopa de pollo, sopa de mondongo, pastelitos, catrachas, enchiladas, tamales, nacatamales
+  - Postres/dulces: bombones, chicles, confites, semitas, rosquillas, torrejas
+  - Otros: pupusas, tacos, quesadillas, elotes locos, marquesitas
+
+### 🟡 GYM — Nueva lógica de entrenamientos
+
+- [ ] **Eliminar selección de días de la semana** del formulario de rutinas
+- [ ] **Al entrar al módulo Gym**, preguntar: *"¿Qué rutina harás hoy?"* (selector)
+- [ ] **Historial de sesiones**: mostrar "Esta rutina la hiciste el lunes 18/04" en la tarjeta
+- [ ] **Marcar el día automáticamente** como día entrenado al iniciar sesión
+- [ ] Permitir repetir la misma rutina más de una vez por semana
+- [ ] **Historial de gym visual**: volumen total levantado por semana (gráfica de barras)
+
+### 🟡 DISEÑO Y UX
+
+- [ ] **Skeleton loaders** — mostrar placeholders animados mientras carga el contenido en cada vista
+- [ ] **Vibración háptica** — `navigator.vibrate(50)` al completar cada serie en sesión de gym
+- [ ] **Animación entre ejercicios** — slide/fade al pasar al siguiente ejercicio
+- [ ] **Gráfica de peso visual** — Chart.js línea en progreso.html (ya existe el canvas, mejorar estilos)
+
+### 🟡 AUTENTICACIÓN / SESIONES
+
+- [ ] **Saludo personalizado** — usar nombre del onboarding > nombre de Google > "Atleta"
+- [ ] **Usuario local/guest** → mostrar botón *"Iniciar sesión y guardar en la nube"* que no borre datos locales al vincular cuenta
+- [ ] **Modo solo visualización** → datos de demo precargados (read-only), no puede modificar ni agregar
+- [ ] **Modo visualización** → siempre visible botón *"Iniciar sesión"* para acceder con cuenta real
+- [ ] Al entrar sin cuenta, power volver al login desde cualquier vista (botón en el header o menú)
+
+### 🟡 SINCRONIZACIÓN
+
+- [ ] **Sync automático** en cada operación de escritura (guardar comida, peso, checklist) — actualmente solo es manual
+- [ ] Debounce de 2 segundos para no saturar Firestore con escrituras rápidas
+- [ ] Indicador visual de estado de sync en header (ícono cloud con animación)
+
+### 🟡 NOTIFICACIONES
+
+- [ ] **Módulo de configuración de notificaciones**:
+  - "Recuerda registrar tus comidas" (hora configurable)
+  - "No has entrenado hoy" (si hay rutina asignada)
+  - "Registra tu peso semanal" (lunes)
+  - Activar/desactivar por tipo
+- [ ] **Notificaciones por rutina** — al crear una rutina, opción de activar recordatorio periódico
+- [ ] Fix: notificaciones de prueba funcionan, las reales no (revisar SW `showNotification`)
+
+### 🟡 MEDIDAS CORPORALES
+
+- [ ] Reemplazar todos los emojis del formulario de medidas con íconos Lucide SVG
+
+### 🟡 HISTORIAL
+
+- [ ] Auditar `historial.html` y su JS — verificar que muestre: comidas, hábitos, agua, peso, gym
+- [ ] Añadir filtros por módulo (solo comidas, solo gym, etc.)
+
+---
+
+## ⚡ v2.5 — Features Avanzadas
+
+### DASHBOARD
+
+- [ ] Métricas de gym en el dashboard principal (última sesión, volumen semanal)
+- [ ] Mejor imagen de "Compartir resumen semanal" — diseño con gradiente premium, datos visuales
+
+### CARDIO / RUNNING
+
+- [ ] Módulo de registro de cardio:
+  - Fecha, distancia (km/mi), duración, calorías quemadas (calculadas por peso y distancia)
+  - Tipo: correr, caminar, ciclismo, natación
+- [ ] Cálculo de calorías: `MET × peso_kg × horas`
+- [ ] [!] Integración con wearables (Huawei Health, Samsung Health): requiere APIs nativas — **solo viable con app nativa (Capacitor) o TWA con Play Services**. Se pospone para v3.
+
+### SHARE INDIVIDUAL DE EJERCICIOS
+
+- [ ] Botón en resumen de sesión: *"Compartir"* → genera imagen con: ejercicio, series × reps, peso, fecha
+- [ ] Usa Canvas API igual que el share semanal
+
+---
+
+## 🎮 v3.0 — Gamificación (Roadmap Futuro)
+
+> **Nota:** La validación de datos reales es el reto principal. Estrategia propuesta: combinar límites lógicos (no puedes registrar 10,000 kcal en un día), frecuencia mínima y patrones de uso.
+
+- [ ] Sistema de rachas diarias (streak) con contador visible
+- [ ] Sistema de puntos por acción:
+  - Registrar comidas: +10 pts
+  - Completar checklist al 100%: +20 pts
+  - Hacer sesión de gym: +30 pts
+  - Registrar peso: +15 pts
+- [ ] Logros desbloqueables:
+  - "Primera semana completa"
+  - "10 sesiones de gym"
+  - "Meta de peso alcanzada"
+  - "30 días de racha"
+- [ ] Anti-trampa básico: límites de calorías, detección de patrones anómalos
+- [ ] Vista de logros y ranking personal
+
+---
+
+## 🌐 v3.5 — Landing Page
+
+- [ ] Página web independiente (GitHub Pages o dominio propio)
+- [ ] Secciones: Hero, Features, Screenshots, Download, Footer
+- [ ] Sin emojis — solo íconos Lucide
+- [ ] Botón *"Instalar como app"* (PWA install prompt)
+- [ ] Botón *"Ver en Play Store"* (cuando esté publicada)
+- [ ] Animaciones suaves (AOS o CSS)
+- [ ] SEO básico (meta tags, OG tags)
+- [ ] Responsive mobile-first
+
+---
+
+## 📦 v3.5 — PWA → APK / Play Store
+
+### Diagnóstico actual
+- [!] APK muestra barra de URL → es un **WebView wrapper** sin configuración TWA
+
+### Plan de acción
+
+#### Opción A — TWA (Trusted Web Activity) ← RECOMENDADA
+- [ ] Configurar `manifest.json`:
+  ```json
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "theme_color": "#0D0D0D",
+  "background_color": "#0D0D0D"
+  ```
+- [ ] Añadir `Digital Asset Links` en el dominio:
+  - Crear archivo `/.well-known/assetlinks.json` con el fingerprint SHA-256 del APK firmado
+- [ ] Usar **Bubblewrap CLI** para generar el APK TWA:
+  ```bash
+  npm i -g @bubblewrap/cli
+  bubblewrap init --manifest https://jkirkconell-08.github.io/fitpulse/manifest.json
+  bubblewrap build
+  ```
+- [ ] Subir `.aab` a Google Play Console
+- [ ] Verificar con `chrome://flags/#enable-twa` en Android
+
+#### Opción B — Capacitor (más control nativo)
+- Requiere migrar a estructura de proyecto Node.js
+- Mayor complejidad pero permite wearable APIs en v3
+
+### Validaciones Play Store
+- [ ] Lighthouse PWA score ≥ 80
+- [ ] HTTPS obligatorio (GitHub Pages ✓)
+- [ ] Service Worker con fetch handler ✓
+- [ ] Manifest con todos los campos requeridos
+- [ ] Ícono 512×512 ✓
+
+---
+
+## 💡 v4.0 — Visión a Largo Plazo (Mi propuesta)
+
+> Ideas que añadiría basándome en el estado actual del proyecto:
+
+- [ ] **Reconocimiento de comidas por foto** — integrar Gemini Vision API para identificar alimentos y estimar calorías
+- [ ] **Plan de alimentación generado por IA** — basado en peso actual, meta y preferencias
+- [ ] **Análisis de tendencias** — "En las semanas que entrenas más de 3 días, pierdes más peso"
+- [ ] **Modo multi-usuario / familia** — compartir datos entre dispositivos con el mismo hogar
+- [ ] **Exportar a PDF** — reporte mensual completo de progreso
+- [ ] **Widget de Android** — mostrar agua del día y calorías restantes desde la pantalla de inicio
+- [ ] **Apple Health / Google Fit sync** — importar pasos y calorías quemadas automáticamente
+- [ ] **Social features** — compartir logros con amigos en la app (tabla de líderes)
+
+---
+
+## 📋 Orden de ejecución sugerido para v2.0
+
+```
+Sprint 1 (1-2 días):
+  1. Bugs críticos (IDs rutinas, modularizar app.js, modo claro)
+  2. Botones editar/eliminar en Hoy (íconos)
+  3. Config.html emojis → íconos
+  4. Íconos módulo Más (color consistente)
+
+Sprint 2 (2-3 días):
+  5. ONBOARDING — selección de unidades
+  6. Saludo personalizado (nombre onboarding > Google)
+  7. Usuario local → botón "Iniciar sesión sin perder datos"
+  8. Modo visualización con datos demo
+
+Sprint 3 (2-3 días):
+  9. COMIDAS — editar días anteriores
+  10. COMIDAS — multi-selección de ítems
+  11. COMIDAS — macros consumidos vs recomendados
+  12. COMIDAS — ampliar DB con alimentos hondureños
+
+Sprint 4 (2-3 días):
+  13. GYM — nueva lógica sin días de semana
+  14. GYM — historial visual (volumen por semana)
+  15. Sync automático con debounce
+  16. Módulo de notificaciones configurable
+
+Sprint 5 (1-2 días):
+  17. Skeleton loaders
+  18. Vibración háptica gym
+  19. Animaciones entre ejercicios
+  20. Medidas corporales: íconos en formulario
+  21. Auditar historial
+
+Sprint 6 (2-3 días):
+  22. Landing Page
+  23. TWA / APK config
+  24. Lighthouse audit
+```
+
+---
+
+> **¿Aprobamos este plan y empezamos con el Sprint 1?**
