@@ -2,7 +2,7 @@
    FitPulse - Service Worker v1
    ========================================================= */
 
-const CACHE_NAME = 'fitpulse-v8';
+const CACHE_NAME = 'fitpulse-v9';
 const ASSETS = [
   './', './login.html', './onboarding.html', './privacy.html',
   './index.html', './dashboard.html', './comidas.html',

@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    NutriTrack - Registro de Comidas y Base de Datos de Alimentos
    ========================================================= */
 
@@ -125,19 +125,54 @@ const FOOD_DB = [
   { id: 133, name: 'Ensalada César',         cal: 180, prot: 8,   carb: 10,  fat: 12,  serving: '1 plato', cat: 'preparadas' },
   { id: 134, name: 'Sopa de pollo',          cal: 150, prot: 12,  carb: 15,  fat: 4,   serving: '1 tazón', cat: 'preparadas' },
   { id: 135, name: 'Chifrijo',               cal: 550, prot: 22,  carb: 55,  fat: 26,  serving: '1 plato', cat: 'preparadas' },
-  { id: 136, name: 'Patacones',              cal: 180, prot: 1,   carb: 28,  fat: 8,   serving: '3 unidades', cat: 'preparadas' },
+  // ─── COMIDAS HONDUREÑAS ───────────────────
+  { id: 200, name: 'Baleada sencilla',        cal: 380, prot: 14,  carb: 52,  fat: 14,  serving: '1 unidad', cat: 'honduras' },
+  { id: 201, name: 'Baleada especial',        cal: 520, prot: 22,  carb: 54,  fat: 24,  serving: '1 unidad', cat: 'honduras' },
+  { id: 202, name: 'Sopa de res',             cal: 290, prot: 22,  carb: 28,  fat: 8,   serving: '1 tazón',  cat: 'honduras' },
+  { id: 203, name: 'Sopa de pollo',           cal: 220, prot: 18,  carb: 22,  fat: 5,   serving: '1 tazón',  cat: 'honduras' },
+  { id: 204, name: 'Sopa de mondongo',        cal: 260, prot: 20,  carb: 24,  fat: 7,   serving: '1 tazón',  cat: 'honduras' },
+  { id: 205, name: 'Pastelitos de carne',     cal: 220, prot: 8,   carb: 24,  fat: 11,  serving: '2 unidades', cat: 'honduras' },
+  { id: 206, name: 'Catrachas',               cal: 180, prot: 9,   carb: 20,  fat: 7,   serving: '2 unidades', cat: 'honduras' },
+  { id: 207, name: 'Enchiladas hondureñas',   cal: 310, prot: 14,  carb: 30,  fat: 15,  serving: '2 unidades', cat: 'honduras' },
+  { id: 208, name: 'Nacatamal',               cal: 480, prot: 16,  carb: 60,  fat: 20,  serving: '1 unidad', cat: 'honduras' },
+  { id: 209, name: 'Tamales de elote',        cal: 280, prot: 6,   carb: 48,  fat: 8,   serving: '1 unidad', cat: 'honduras' },
+  { id: 210, name: 'Ensalada de papa',        cal: 240, prot: 4,   carb: 32,  fat: 11,  serving: '1 taza',   cat: 'honduras' },
+  { id: 211, name: 'Elote loco',              cal: 350, prot: 8,   carb: 48,  fat: 15,  serving: '1 unidad', cat: 'honduras' },
+  { id: 212, name: 'Plato típico (pollo)',    cal: 720, prot: 38,  carb: 80,  fat: 22,  serving: '1 plato',  cat: 'honduras' },
+  { id: 213, name: 'Plato típico (carne)',    cal: 780, prot: 36,  carb: 80,  fat: 28,  serving: '1 plato',  cat: 'honduras' },
+  { id: 214, name: 'Machuca',                 cal: 320, prot: 10,  carb: 50,  fat: 9,   serving: '1 tazón',  cat: 'honduras' },
+  { id: 215, name: 'Tapado olanchano',        cal: 410, prot: 24,  carb: 42,  fat: 14,  serving: '1 tazón',  cat: 'honduras' },
+
+  // ─── DULCES Y SNACKS HONDUREÑOS ──────────
+  { id: 220, name: 'Bombones',               cal: 35,  prot: 0,   carb: 9,   fat: 0,   serving: '1 unidad', cat: 'hondurasSnacks' },
+  { id: 221, name: 'Chicles / Goma de mascar',cal: 10, prot: 0,   carb: 2.5, fat: 0,   serving: '1 unidad', cat: 'hondurasSnacks' },
+  { id: 222, name: 'Confites / Dulcitos',    cal: 25,  prot: 0,   carb: 6.5, fat: 0.5, serving: '10 unidades', cat: 'hondurasSnacks' },
+  { id: 223, name: 'Semitas',                cal: 420, prot: 7,   carb: 62,  fat: 16,  serving: '1 unidad', cat: 'hondurasSnacks' },
+  { id: 224, name: 'Rosquillas',             cal: 140, prot: 3,   carb: 22,  fat: 5,   serving: '3 unidades', cat: 'hondurasSnacks' },
+  { id: 225, name: 'Torrejas',               cal: 280, prot: 7,   carb: 38,  fat: 12,  serving: '2 unidades', cat: 'hondurasSnacks' },
+  { id: 226, name: 'Poleadas',               cal: 190, prot: 4,   carb: 32,  fat: 5,   serving: '1 taza',   cat: 'hondurasSnacks' },
+  { id: 227, name: 'Ayote en miel',          cal: 160, prot: 1,   carb: 40,  fat: 0.5, serving: '1 taza',   cat: 'hondurasSnacks' },
+  { id: 228, name: 'Rigua',                  cal: 180, prot: 3,   carb: 30,  fat: 6,   serving: '1 unidad', cat: 'hondurasSnacks' },
+
+  // ─── CENTROAMÉRICA / MEXICO ───────────────
+  { id: 230, name: 'Pupusa de queso',        cal: 215, prot: 8,   carb: 26,  fat: 9,   serving: '1 unidad', cat: 'preparadas' },
+  { id: 231, name: 'Tacos de carne (3)',      cal: 456, prot: 21,  carb: 42,  fat: 22,  serving: '3 unidades', cat: 'preparadas' },
+  { id: 232, name: 'Quesadilla',             cal: 480, prot: 18,  carb: 45,  fat: 26,  serving: '1 unidad', cat: 'preparadas' },
+  { id: 233, name: 'Marquesitas',            cal: 320, prot: 5,   carb: 42,  fat: 15,  serving: '1 unidad', cat: 'preparadas' },
 ];
 
 const FOOD_CATEGORIES = [
-  { id: 'proteinas',     name: 'Proteínas',        icon: 'beef' },
-  { id: 'carbohidratos', name: 'Carbohidratos',    icon: 'wheat' },
-  { id: 'frutas',        name: 'Frutas',           icon: 'apple' },
-  { id: 'verduras',      name: 'Verduras',         icon: 'leaf' },
-  { id: 'lacteos',       name: 'Lácteos',          icon: 'milk' },
-  { id: 'bebidas',       name: 'Bebidas',          icon: 'coffee' },
-  { id: 'snacks',        name: 'Snacks / Postres', icon: 'cookie' },
-  { id: 'grasas',        name: 'Grasas / Condimentos', icon: 'droplets' },
-  { id: 'preparadas',    name: 'Comidas preparadas',   icon: 'utensils' },
+  { id: 'proteinas',      name: 'Proteínas',          icon: 'beef' },
+  { id: 'carbohidratos',  name: 'Carbohidratos',       icon: 'wheat' },
+  { id: 'frutas',         name: 'Frutas',              icon: 'apple' },
+  { id: 'verduras',       name: 'Verduras',            icon: 'leaf' },
+  { id: 'lacteos',        name: 'Lácteos',             icon: 'milk' },
+  { id: 'bebidas',        name: 'Bebidas',             icon: 'coffee' },
+  { id: 'snacks',         name: 'Snacks / Postres',    icon: 'cookie' },
+  { id: 'grasas',         name: 'Grasas / Condimentos',icon: 'droplets' },
+  { id: 'preparadas',     name: 'Comidas preparadas',  icon: 'utensils' },
+  { id: 'honduras',       name: 'Platos hondureños',   icon: 'map-pin' },
+  { id: 'hondurasSnacks', name: 'Dulces hondureños',   icon: 'candy' },
 ];
 
 const MEAL_TYPES = [
@@ -154,17 +189,22 @@ const Comidas = {
   init() {
     this._initDarkMode();
     this.fecha = Storage.today();
+    this.cart = []; // multi-select cart
     this._render();
   },
 
   _initDarkMode() {
-    const dark = Storage.getDarkMode();
-    if (dark) document.body.classList.add('dark');
+    const isLight = Storage.getDarkMode() === 'light';
+    if (isLight) { document.body.classList.add('light'); document.body.classList.remove('dark'); }
+    else { document.body.classList.remove('light'); document.body.classList.add('dark'); }
     const toggle = document.getElementById('dark-toggle');
     if (toggle) {
-      toggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark');
-        Storage.setDarkMode(document.body.classList.contains('dark'));
+      const fresh = toggle.cloneNode(true);
+      toggle.parentNode.replaceChild(fresh, toggle);
+      fresh.addEventListener('click', () => {
+        const nowLight = document.body.classList.toggle('light');
+        document.body.classList.toggle('dark', !nowLight);
+        Storage.setDarkMode(nowLight ? 'light' : 'dark');
       });
     }
   },
@@ -174,20 +214,42 @@ const Comidas = {
     if (!container) return;
 
     const registro = Storage.obtenerComidas(this.fecha);
-    const config = Storage.obtenerConfig();
-    const metaCal = config.metaCal || 2200;
+    const config   = Storage.obtenerConfig();
+    const metaCal  = config.metaCal || 2200;
+    // Macro targets based on calorie goal
+    const metaProt = Math.round(metaCal * 0.30 / 4);  // 30% prot
+    const metaCarb = Math.round(metaCal * 0.45 / 4);  // 45% carbs
+    const metaFat  = Math.round(metaCal * 0.25 / 9);  // 25% fat
 
-    // Calculate totals
     const totals = this._calcTotals(registro);
+    const isToday = this.fecha === Storage.today();
+    const fechaLabel = isToday ? 'Hoy' : this._formatFecha(this.fecha);
 
     container.innerHTML = `
+      <!-- Navegador de fecha -->
+      <div class="date-nav fade-in">
+        <button id="btn-prev-day" class="date-nav-btn" title="Día anterior">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="date-nav-center">
+          <span class="date-nav-label">${fechaLabel}</span>
+          <input type="date" id="date-picker" value="${this.fecha}" max="${Storage.today()}" class="date-picker-hidden">
+          <button id="btn-pick-date" class="date-nav-edit">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+        </div>
+        <button id="btn-next-day" class="date-nav-btn" ${isToday ? 'disabled style="opacity:0.3;"' : ''} title="Día siguiente">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
       <!-- Resumen calórico -->
       <div class="cal-summary fade-in">
         <div class="cal-circle-wrap">
           <div class="cal-circle" id="cal-circle">
             <svg viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="8"/>
-              <circle cx="60" cy="60" r="50" fill="none" stroke="${totals.cal > metaCal ? 'var(--danger)' : 'var(--green)'}" stroke-width="8" stroke-dasharray="${Math.min(314, (totals.cal / metaCal) * 314)} 314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="${totals.cal > metaCal ? 'var(--danger)' : 'var(--brand)'}" stroke-width="8" stroke-dasharray="${Math.min(314, (totals.cal / metaCal) * 314)} 314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
             </svg>
             <div class="cal-circle-text">
               <span class="cal-num">${totals.cal}</span>
@@ -195,20 +257,24 @@ const Comidas = {
             </div>
           </div>
         </div>
+        <!-- Macros consumido vs meta -->
         <div class="macros-row">
           <div class="macro-item">
-            <div class="macro-bar prot"><div style="width:${Math.min(100, totals.prot / 1.5)}%"></div></div>
+            <div class="macro-bar prot"><div style="width:${Math.min(100,(totals.prot/metaProt)*100)}%"></div></div>
             <span class="macro-val">${totals.prot}g</span>
+            <span class="macro-meta">/ ${metaProt}g</span>
             <span class="macro-lbl">Proteína</span>
           </div>
           <div class="macro-item">
-            <div class="macro-bar carb"><div style="width:${Math.min(100, totals.carb / 2.5)}%"></div></div>
+            <div class="macro-bar carb"><div style="width:${Math.min(100,(totals.carb/metaCarb)*100)}%"></div></div>
             <span class="macro-val">${totals.carb}g</span>
+            <span class="macro-meta">/ ${metaCarb}g</span>
             <span class="macro-lbl">Carbos</span>
           </div>
           <div class="macro-item">
-            <div class="macro-bar fatt"><div style="width:${Math.min(100, totals.fat / 0.8)}%"></div></div>
+            <div class="macro-bar fatt"><div style="width:${Math.min(100,(totals.fat/metaFat)*100)}%"></div></div>
             <span class="macro-val">${totals.fat}g</span>
+            <span class="macro-meta">/ ${metaFat}g</span>
             <span class="macro-lbl">Grasas</span>
           </div>
         </div>
@@ -219,22 +285,90 @@ const Comidas = {
         </div>
       </div>
 
-      <!-- Botón agregar -->
-      <button id="btn-add-food" class="btn btn-primary btn-full" style="margin-bottom:20px;">
-        + Ingresar comida
-      </button>
+      <!-- Botones acción -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        <button id="btn-add-food" class="btn btn-primary" style="flex:1;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Agregar
+        </button>
+        <button id="btn-historial-comidas" class="btn btn-secondary" style="flex:1;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Historial
+        </button>
+      </div>
 
-      <!-- Comidas por tipo -->
+      <!-- Lista de comidas -->
       <div id="meals-list"></div>
     `;
 
     this._renderMealsList(registro);
-    Icons.init();
+    if (typeof Icons !== 'undefined') Icons.init();
 
-    document.getElementById('btn-add-food').addEventListener('click', () => {
-      this._showFoodSearch();
+    // Date navigation
+    document.getElementById('btn-prev-day').addEventListener('click', () => this._changeDay(-1));
+    document.getElementById('btn-next-day')?.addEventListener('click', () => this._changeDay(1));
+    document.getElementById('btn-pick-date').addEventListener('click', () => {
+      document.getElementById('date-picker').showPicker?.() || document.getElementById('date-picker').click();
     });
+    document.getElementById('date-picker').addEventListener('change', (e) => {
+      if (e.target.value) { this.fecha = e.target.value; this._render(); }
+    });
+
+    document.getElementById('btn-add-food').addEventListener('click', () => this._showFoodSearch());
+    document.getElementById('btn-historial-comidas').addEventListener('click', () => this._showHistorialComidas());
   },
+
+  _formatFecha(f) {
+    const d = new Date(f + 'T12:00:00');
+    return DIAS_SEMANA[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()];
+  },
+
+  _changeDay(delta) {
+    const d = new Date(this.fecha + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    const newDate = d.toISOString().split('T')[0];
+    if (newDate <= Storage.today()) { this.fecha = newDate; this._render(); }
+  },
+
+  _showHistorialComidas() {
+    const overlay = document.getElementById('food-overlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    const closeBtn = document.getElementById('food-overlay-close');
+    closeBtn.onclick = () => overlay.classList.remove('active');
+
+    const resultsDiv = document.getElementById('food-search-results');
+    const catBtns   = document.getElementById('food-cat-btns');
+    const searchInput = document.getElementById('food-search-input');
+    searchInput.style.display = 'none';
+    catBtns.innerHTML = '';
+
+    // Build 14-day history
+    let html = '<div style="padding:4px 0;"><h3 style="font-size:1rem;font-weight:800;margin-bottom:12px;">Historial de comidas</h3>';
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const f = d.toISOString().split('T')[0];
+      const reg = Storage.obtenerComidas(f);
+      const items = reg.comidas || [];
+      if (items.length === 0 && i > 0) continue;
+      const cal = Math.round(items.reduce((s,c) => s + c.cal * c.cantidad, 0));
+      const label = i === 0 ? 'Hoy' : DIAS_SEMANA[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()];
+      html += `
+        <div style="background:var(--bg-card);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border);" onclick="Comidas.fecha='${f}';Comidas._render();document.getElementById('food-overlay').classList.remove('active');">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-weight:700;font-size:0.9rem;">${label}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">${items.length} alimentos registrados</div>
+            </div>
+            <div style="font-weight:800;font-size:1rem;color:var(--brand);">${cal} kcal</div>
+          </div>
+        </div>`;
+    }
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+    searchInput.style.display = '';
+  },
+
 
   _calcTotals(registro) {
     const items = registro.comidas || [];
