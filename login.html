@@ -1,8 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
   <meta charset="UTF-8">
+  <script>!function(){var t=localStorage.getItem("fitpulse_dark")||"dark";document.documentElement.className=t==="light"?"light":"dark"}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="FitPulse - Tu pulso diario de bienestar">
   <meta name="theme-color" content="#0D0D0D">
@@ -243,7 +244,7 @@
       </button>
 
       <button class="btn-offline" id="btn-offline">
-        Solo explorar <i data-lucide="arrow-right" class="icon icon-sm" style="width:16px;height:16px;"></i>
+        Solo explorar →
       </button>
 
       <p class="login-footer">
@@ -253,8 +254,7 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="js/icons.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>
@@ -281,6 +281,7 @@
 
       document.getElementById('btn-start').addEventListener('click', () => {
         localStorage.setItem('fitpulse_offline', 'true');
+        localStorage.removeItem('fitpulse_demo'); // real offline user
         const config = Storage.obtenerConfig();
         if (!config.nombre || config.nombre === 'Usuario') {
           window.location.href = 'onboarding.html';
@@ -290,8 +291,10 @@
       });
 
       document.getElementById('btn-offline').addEventListener('click', () => {
+        // Demo mode: read-only with fake data
         localStorage.setItem('fitpulse_offline', 'true');
-        window.location.href = 'index.html';
+        localStorage.setItem('fitpulse_demo', 'true');
+        window.location.href = 'dashboard.html';
       });
     });
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => { }); }

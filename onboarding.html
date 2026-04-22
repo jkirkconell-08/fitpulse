@@ -1,7 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <script>!function(){var t=localStorage.getItem("fitpulse_dark")||"dark";document.documentElement.className=t==="light"?"light":"dark"}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0D0D0D">
   <title>FitPulse - Configuración Inicial</title>
@@ -9,6 +10,7 @@
   <link rel="stylesheet" href="css/app.css">
   <style>
     html, body { min-height: 100vh; background: #0D0D0D; padding-bottom: 0; }
+    html.light, html.light body { background: #F2F2F7; }
 
     .onboard-page {
       min-height: 100vh;
@@ -48,7 +50,16 @@
     .onboard-step { display: none; flex-direction: column; flex: 1; animation: slideUp 0.3s ease both; }
     .onboard-step.active { display: flex; }
 
-    .ob-emoji  { font-size: 2.8rem; margin-bottom: 14px; }
+    .ob-icon  {
+      width: 64px; height: 64px;
+      background: rgba(124,58,237,0.12);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+      color: #A78BFA;
+    }
+    .ob-icon svg { width: 32px; height: 32px; stroke: #A78BFA; }
+
     .ob-title  { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.05em; margin-bottom: 6px; }
     .ob-desc   { font-size: 0.9rem; color: #636366; font-weight: 500; margin-bottom: 28px; line-height: 1.5; }
     .ob-optional { font-size: 0.75rem; color: #3C3C43; margin-left: 6px; font-weight: 500; }
@@ -73,8 +84,40 @@
       outline: none;
       transition: border-color 0.2s;
     }
+    html.light .ob-field input, html.light .ob-field select {
+      background: #fff; color: #1C1C1E; border-color: #D1D1D6;
+    }
     .ob-field input:focus, .ob-field select:focus { border-color: #7C3AED; }
     .ob-field input::placeholder { color: #3C3C43; }
+
+    /* Unit toggle pills */
+    .unit-toggle {
+      display: flex;
+      background: #1C1C1E;
+      border: 1.5px solid #2C2C2E;
+      border-radius: 14px;
+      padding: 4px;
+      gap: 4px;
+    }
+    html.light .unit-toggle { background: #F2F2F7; border-color: #D1D1D6; }
+    .unit-btn {
+      flex: 1;
+      padding: 11px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: #636366;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .unit-btn.active {
+      background: #7C3AED;
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(124,58,237,0.4);
+    }
 
     .onboard-btns { display: flex; gap: 10px; margin-top: 32px; }
 
@@ -96,49 +139,34 @@
       cursor: pointer;
       box-shadow: 0 8px 24px rgba(124,58,237,0.4);
       transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-ob-next:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(124,58,237,0.5); }
 
-    /* Day selector */
-    .dias-grid { display: flex; gap: 8px; flex-wrap: wrap; }
-    .dia-btn {
-      width: 48px; height: 48px; border-radius: 12px;
-      border: 1.5px solid #2C2C2E;
-      background: #1C1C1E; color: #AEAEB2;
-      font-size: 0.78rem; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center;
+    /* Unit row helper */
+    .unit-group { display: flex; flex-direction: column; gap: 8px; }
+    .unit-group-label {
+      font-size: 0.8rem; font-weight: 700; color: #AEAEB2;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
-    .dia-btn.selected {
-      background: #7C3AED; border-color: #7C3AED; color: #fff;
-      box-shadow: 0 4px 14px rgba(124,58,237,0.4);
-    }
-
-    /* Summary step */
-    .ob-summary { background: #1C1C1E; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
-    .ob-summary-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 0; border-bottom: 1px solid #2C2C2E;
-    }
-    .ob-summary-row:last-child { border-bottom: none; }
-    .ob-summary-row .key { font-size: 0.85rem; color: #636366; font-weight: 600; }
-    .ob-summary-row .val { font-size: 0.9rem; font-weight: 700; }
   </style>
 </head>
 <body>
   <div class="onboard-page">
     <div class="onboard-top">
       <span class="ob-logo">FitPulse</span>
-      <button class="btn-skip" id="btn-skip-all">Saltar todo <i data-lucide="arrow-right" class="icon icon-sm" style="width:16px;height:16px;"></i></button>
+      <button class="btn-skip" id="btn-skip-all">Saltar todo →</button>
     </div>
 
     <div class="onboard-progress" id="progress-dots"></div>
 
     <!-- Step 1: Nombre -->
     <div class="onboard-step active" id="step-1">
-      <div class="ob-emoji"><svg class="icon icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11.5V9a2 2 0 00-2-2v0a2 2 0 00-2 2v1M14 10V8a2 2 0 00-2-2v0a2 2 0 00-2 2v2m0 0V5a2 2 0 00-2-2v0a2 2 0 00-2 2v9"/><path d="M6 14v0a6 6 0 006 6h2a6 6 0 006-6v-3"/></svg></div>
+      <div class="ob-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11.5V9a2 2 0 00-2-2v0a2 2 0 00-2 2v1M14 10V8a2 2 0 00-2-2v0a2 2 0 00-2 2v2m0 0V5a2 2 0 00-2-2v0a2 2 0 00-2 2v9"/><path d="M6 14v0a6 6 0 006 6h2a6 6 0 006-6v-3"/></svg>
+      </div>
       <h1 class="ob-title">¡Bienvenido a<br>FitPulse!</h1>
-      <p class="ob-desc">Vamos a configurar tu perfil. Puedes saltar cualquier paso que no sepas.</p>
+      <p class="ob-desc">Vamos a configurar tu perfil. Puedes saltar cualquier paso.</p>
       <div class="onboard-fields">
         <div class="ob-field">
           <label>¿Cómo te llamas? <span class="ob-optional">(opcional)</span></label>
@@ -146,22 +174,70 @@
         </div>
       </div>
       <div class="onboard-btns">
-        <button class="btn-ob-next" onclick="Onboarding.next()">Siguiente <i data-lucide="arrow-right" class="icon icon-sm" style="width:16px;height:16px;"></i></button>
+        <button class="btn-ob-next" onclick="Onboarding.next()">
+          Siguiente
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
       </div>
     </div>
 
-    <!-- Step 2: Peso y metas -->
+    <!-- Step 2: Unidades -->
     <div class="onboard-step" id="step-2">
-      <div class="ob-emoji"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l1 12h12L19 8M12 2v6M3 8h18M9.5 8a2.5 2.5 0 005 0"/></svg></div>
+      <div class="ob-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <h1 class="ob-title">Unidades de medida</h1>
+      <p class="ob-desc">Elige cómo prefieres ver tus datos. Puedes cambiarlo después en Configuración.</p>
+      <div class="onboard-fields">
+
+        <div class="unit-group">
+          <div class="unit-group-label">Peso corporal</div>
+          <div class="unit-toggle" id="toggle-peso">
+            <button class="unit-btn active" data-val="kg">kg</button>
+            <button class="unit-btn" data-val="lbs">lbs</button>
+          </div>
+        </div>
+
+        <div class="unit-group">
+          <div class="unit-group-label">Altura</div>
+          <div class="unit-toggle" id="toggle-altura">
+            <button class="unit-btn active" data-val="cm">cm</button>
+            <button class="unit-btn" data-val="ft">ft / in</button>
+          </div>
+        </div>
+
+        <div class="unit-group">
+          <div class="unit-group-label">Peso en ejercicios</div>
+          <div class="unit-toggle" id="toggle-ejercicio">
+            <button class="unit-btn" data-val="kg">kg</button>
+            <button class="unit-btn active" data-val="lbs">lbs</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="onboard-btns">
+        <button class="btn-ob-back" onclick="Onboarding.prev()">←</button>
+        <button class="btn-ob-next" onclick="Onboarding.next()">
+          Siguiente
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Peso y metas -->
+    <div class="onboard-step" id="step-3">
+      <div class="ob-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l1 12h12L19 8M12 2v6M3 8h18M9.5 8a2.5 2.5 0 005 0"/></svg>
+      </div>
       <h1 class="ob-title">Tu peso y metas</h1>
-      <p class="ob-desc">Esto nos ayuda a calcular tu progreso. Puedes actualizarlo en cualquier momento.</p>
+      <p class="ob-desc">Registra tu punto de partida. Puedes actualizarlo en cualquier momento.</p>
       <div class="onboard-fields">
         <div class="ob-field">
-          <label>Peso actual (kg) <span class="ob-optional">(opcional)</span></label>
+          <label id="lbl-peso-actual">Peso actual (kg) <span class="ob-optional">(opcional)</span></label>
           <input type="number" id="ob-peso" step="0.1" placeholder="Ej: 85.5" inputmode="decimal">
         </div>
         <div class="ob-field">
-          <label>Meta de peso (kg) <span class="ob-optional">(opcional)</span></label>
+          <label id="lbl-meta-peso">Meta de peso (kg) <span class="ob-optional">(opcional)</span></label>
           <input type="number" id="ob-meta" step="0.1" placeholder="Ej: 75.0" inputmode="decimal">
         </div>
         <div class="ob-field">
@@ -171,50 +247,30 @@
       </div>
       <div class="onboard-btns">
         <button class="btn-ob-back" onclick="Onboarding.prev()">←</button>
-        <button class="btn-ob-next" onclick="Onboarding.next()">Siguiente <i data-lucide="arrow-right" class="icon icon-sm" style="width:16px;height:16px;"></i></button>
-      </div>
-    </div>
-
-    <!-- Step 3: Gym -->
-    <div class="onboard-step" id="step-3">
-      <div class="ob-emoji"><svg class="icon icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11M6.5 17.5h11M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg></div>
-      <h1 class="ob-title">Tu rutina de gym</h1>
-      <p class="ob-desc">¿Qué días entrenas? Puedes cambiar esto después. <span class="ob-optional">Todo es opcional.</span></p>
-      <div class="onboard-fields">
-        <div class="ob-field">
-          <label>Días de entrenamiento</label>
-          <div class="dias-grid" id="dias-grid"></div>
-        </div>
-        <div class="ob-field">
-          <label>Hora de inicio del gym <span class="ob-optional">(opcional)</span></label>
-          <input type="time" id="ob-hora-gym" value="06:00">
-        </div>
-      </div>
-      <div class="onboard-btns">
-        <button class="btn-ob-back" onclick="Onboarding.prev()">←</button>
-        <button class="btn-ob-next" onclick="Onboarding.finish()">¡Empezar! <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></button>
+        <button class="btn-ob-next" onclick="Onboarding.finish()">
+          ¡Empezar!
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/></svg>
+        </button>
       </div>
     </div>
   </div>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="js/icons.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/cloud-sync.js"></script>
   <script src="js/app.js"></script>
   <script>
-    const DIAS_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
     const Onboarding = {
       step: 1,
       totalSteps: 3,
-      selectedDias: [1, 2, 3, 4, 5],
+      units: { peso: 'kg', altura: 'cm', ejercicio: 'lbs' },
 
       init() {
         this._renderProgress();
-        this._renderDias();
+        this._initUnitToggles();
+        this._updateWeightLabels();
 
         // Pre-fill name from Google account if available
         Auth.init().then(() => {
@@ -225,10 +281,34 @@
           }
         });
 
-        // Skip all button
-        document.getElementById('btn-skip-all').addEventListener('click', () => {
-          this.finish(true);
+        document.getElementById('btn-skip-all').addEventListener('click', () => this.finish(true));
+      },
+
+      _initUnitToggles() {
+        ['toggle-peso', 'toggle-altura', 'toggle-ejercicio'].forEach(id => {
+          const container = document.getElementById(id);
+          const key = id.replace('toggle-', '');
+          container.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              container.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              this.units[key] = btn.dataset.val;
+              if (key === 'peso') this._updateWeightLabels();
+            });
+          });
         });
+      },
+
+      _updateWeightLabels() {
+        const u = this.units.peso;
+        const lbl1 = document.getElementById('lbl-peso-actual');
+        const lbl2 = document.getElementById('lbl-meta-peso');
+        if (lbl1) lbl1.innerHTML = `Peso actual (${u}) <span class="ob-optional">(opcional)</span>`;
+        if (lbl2) lbl2.innerHTML = `Meta de peso (${u}) <span class="ob-optional">(opcional)</span>`;
+        const inp1 = document.getElementById('ob-peso');
+        const inp2 = document.getElementById('ob-meta');
+        if (inp1) inp1.placeholder = u === 'lbs' ? 'Ej: 188.0' : 'Ej: 85.5';
+        if (inp2) inp2.placeholder = u === 'lbs' ? 'Ej: 165.0' : 'Ej: 75.0';
       },
 
       _renderProgress() {
@@ -239,31 +319,10 @@
           dot.className = `ob-dot ${i < this.step ? 'done' : ''} ${i === this.step ? 'current' : ''}`;
           el.appendChild(dot);
         }
-        // Update skip button text
         const skipBtn = document.getElementById('btn-skip-all');
         if (skipBtn) {
-          skipBtn.textContent = this.step < this.totalSteps ? 'Saltar <i data-lucide="arrow-right" class="icon icon-sm" style="width:16px;height:16px;"></i>' : '';
           skipBtn.style.visibility = this.step === this.totalSteps ? 'hidden' : 'visible';
         }
-      },
-
-      _renderDias() {
-        const grid = document.getElementById('dias-grid');
-        grid.innerHTML = DIAS_LABELS.map((d, i) =>
-          `<button class="dia-btn ${this.selectedDias.includes(i) ? 'selected' : ''}" data-dia="${i}">${d}</button>`
-        ).join('');
-
-        grid.querySelectorAll('.dia-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const dia = parseInt(btn.dataset.dia);
-            if (this.selectedDias.includes(dia)) {
-              this.selectedDias = this.selectedDias.filter(d => d !== dia);
-            } else {
-              this.selectedDias.push(dia);
-            }
-            btn.classList.toggle('selected');
-          });
-        });
       },
 
       next() {
@@ -284,15 +343,18 @@
       },
 
       finish(skip = false) {
-        // All fields optional — use defaults if empty
         const nombre = document.getElementById('ob-nombre')?.value?.trim() || 'Atleta';
         const pesoRaw = parseFloat(document.getElementById('ob-peso')?.value);
         const metaRaw = parseFloat(document.getElementById('ob-meta')?.value);
         const calRaw  = parseInt(document.getElementById('ob-cal')?.value);
-        const horaGym = document.getElementById('ob-hora-gym')?.value || '06:00';
 
-        const peso = isNaN(pesoRaw) ? 80 : pesoRaw;
-        const meta = isNaN(metaRaw) ? peso - 10 : metaRaw;
+        // Convert to kg internally if user entered lbs
+        let peso = isNaN(pesoRaw) ? 80 : pesoRaw;
+        let meta = isNaN(metaRaw) ? peso - 10 : metaRaw;
+        if (this.units.peso === 'lbs') {
+          peso = parseFloat((peso / 2.205).toFixed(1));
+          meta = parseFloat((meta / 2.205).toFixed(1));
+        }
         const metaCal = isNaN(calRaw) ? 2200 : calRaw;
 
         Storage.guardarConfig({
@@ -301,14 +363,18 @@
           meta,
           hito: Math.ceil(peso / 10) * 10,
           metaCal,
-          horaGym,
+          horaGym: '06:00',
           horaCena: '19:00',
-          diasGym: this.selectedDias
+          diasGym: [],
+          unidades: {
+            peso: this.units.peso,
+            altura: this.units.altura,
+            ejercicio: this.units.ejercicio
+          }
         });
 
         Storage.guardarPeso(Storage.today(), peso);
 
-        // Sync to cloud immediately
         if (typeof CloudSync !== 'undefined' && Auth.initialized && Auth.user) {
           CloudSync.pushToCloud();
         }

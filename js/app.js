@@ -44,6 +44,98 @@ const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Vier
 const DIAS_CORTO  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+/* ─── Demo Mode ─── */
+const DemoData = {
+  isDemo() { return localStorage.getItem('fitpulse_demo') === 'true'; },
+
+  load() {
+    if (!this.isDemo()) return;
+    // Only inject if no real data exists
+    if (localStorage.getItem('fitpulse_config')) return;
+
+    const today = Storage.today();
+    const peso = (65 + Math.random() * 30).toFixed(1);
+
+    Storage.guardarConfig({
+      nombre: 'Atleta',
+      pesoInicial: parseFloat(peso),
+      meta: parseFloat(peso) - 10,
+      hito: Math.ceil(parseFloat(peso) / 10) * 10,
+      metaCal: 2200,
+      horaGym: '06:00',
+      horaCena: '19:00',
+      diasGym: [1, 3, 5],
+      unidades: { peso: 'kg', altura: 'cm', ejercicio: 'lbs' }
+    });
+
+    // Fake week of check-ins
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const f = d.toISOString().split('T')[0];
+      const pct = 60 + Math.floor(Math.random() * 40);
+      const items = getDailyItems();
+      const checked = items.filter(() => Math.random() < pct / 100).map(it => it.id);
+      Storage.guardarChecklist(f, { checked, pct });
+      Storage.guardarAgua(f, { vasos: Math.floor(4 + Math.random() * 5), meta: 8 });
+      Storage.guardarPeso(f, parseFloat((parseFloat(peso) - i * 0.15).toFixed(1)));
+    }
+
+    // Fake today's meals
+    Storage.guardarComidas(today, {
+      comidas: [
+        { nombre: 'Huevos revueltos', cal: 220, prot: 18, carbs: 2, grasas: 15, cantidad: 1, tipo: 'desayuno' },
+        { nombre: 'Pan integral', cal: 140, prot: 5, carbs: 28, grasas: 2, cantidad: 2, tipo: 'desayuno' },
+        { nombre: 'Pollo a la plancha', cal: 165, prot: 31, carbs: 0, grasas: 4, cantidad: 1, tipo: 'almuerzo' },
+        { nombre: 'Arroz blanco', cal: 206, prot: 4, carbs: 45, grasas: 0, cantidad: 1, tipo: 'almuerzo' }
+      ]
+    });
+  },
+
+  showBanner() {
+    if (!this.isDemo()) return;
+    const existing = document.getElementById('demo-banner');
+    if (existing) return;
+    const banner = document.createElement('div');
+    banner.id = 'demo-banner';
+    banner.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(71,118,230,0.15));border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+          <div style="font-size:0.85rem;font-weight:700;color:#A78BFA;margin-bottom:2px;">Modo exploración</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Datos de ejemplo — no puedes modificarlos</div>
+        </div>
+        <a href="login.html" style="background:#7C3AED;color:#fff;font-size:0.8rem;font-weight:700;padding:8px 14px;border-radius:10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Crear cuenta</a>
+      </div>`;
+    const container = document.querySelector('.container') || document.body;
+    const firstChild = container.querySelector('h1, .page-title, .dash-greeting');
+    if (firstChild) container.insertBefore(banner, firstChild);
+    else container.prepend(banner);
+  }
+};
+
+/* ─── Offline → Cloud upgrade helper ─── */
+function showLinkAccountBanner() {
+  const isOffline = localStorage.getItem('fitpulse_offline') === 'true';
+  const isDemo    = localStorage.getItem('fitpulse_demo')    === 'true';
+  const hasUser   = !!localStorage.getItem('fitpulse_user');
+  if (!isOffline || hasUser || isDemo) return;
+  const existing = document.getElementById('link-account-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'link-account-banner';
+  banner.innerHTML = `
+    <div style="background:rgba(48,209,88,0.08);border:1px solid rgba(48,209,88,0.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <div>
+        <div style="font-size:0.85rem;font-weight:700;color:#30D158;margin-bottom:2px;">Sin cuenta activa</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">Inicia sesión para guardar tus datos en la nube</div>
+      </div>
+      <a href="login.html" style="background:#30D158;color:#000;font-size:0.8rem;font-weight:700;padding:8px 14px;border-radius:10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">Sincronizar</a>
+    </div>`;
+  const container = document.querySelector('.container') || document.body;
+  const firstChild = container.querySelector('h1, .page-title, .dash-greeting');
+  if (firstChild) container.insertBefore(banner, firstChild);
+  else container.prepend(banner);
+}
+
 /* ─── Helper: dark mode init (shared) ─── */
 function initDarkMode() {
   // Default is dark. Light mode = body.light class

@@ -1,11 +1,14 @@
-﻿/* =========================================================
+/* =========================================================
    FitPulse - Dashboard Semanal
    ========================================================= */
 
 const Dashboard = {
   init() {
     initDarkMode();
+    if (typeof DemoData !== 'undefined') DemoData.load();
     this._render();
+    if (typeof DemoData !== 'undefined') DemoData.showBanner();
+    if (typeof showLinkAccountBanner !== 'undefined') showLinkAccountBanner();
   },
 
   _render() {
@@ -27,7 +30,7 @@ const Dashboard = {
     container.innerHTML = `
       <!-- Saludo -->
       <div class="dash-greeting fade-in">
-        <h2>Hola, ${config.nombre} 👋</h2>
+        <h2>Hola, ${this._getDisplayName(config)} <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M18 11.5V9a2 2 0 00-2-2v0a2 2 0 00-2 2v1M14 10V8a2 2 0 00-2-2v0a2 2 0 00-2 2v2m0 0V5a2 2 0 00-2-2v0a2 2 0 00-2 2v9"/><path d="M6 14v0a6 6 0 006 6h2a6 6 0 006-6v-3"/></svg></h2>
         <p>${this._getGreetingMsg()}</p>
       </div>
 
@@ -174,6 +177,24 @@ const Dashboard = {
     if (h < 12) return 'Buenos días! Empieza tu día con energía.';
     if (h < 18) return 'Buena tarde! ¿Cómo va tu alimentación hoy?';
     return 'Buenas noches! No olvides completar tu registro.';
+  },
+
+  _getDisplayName(config) {
+    // Priority: onboarding name > Google name > 'Atleta'
+    if (config.nombre && config.nombre !== 'Usuario' && config.nombre !== 'Atleta') {
+      return config.nombre;
+    }
+    // Try Google account name
+    const user = (typeof Auth !== 'undefined') ? Auth.getUser() : null;
+    if (user) {
+      const googleName = user.name || user.displayName;
+      if (googleName) {
+        // Use only first name
+        const firstName = googleName.split(' ')[0];
+        return firstName;
+      }
+    }
+    return config.nombre || 'Atleta';
   },
 
   /* ─── Compartir como imagen ─── */
