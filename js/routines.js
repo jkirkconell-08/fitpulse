@@ -57,15 +57,47 @@ const Routines = {
   },
 
   _initDefaults() {
-    // Give each default routine a unique ID based on timestamp to avoid collisions
     const ts = Date.now();
     const defaults = DEFAULT_ROUTINES.map((r, i) => ({
       ...r,
       id: `routine_${ts}_${i}`,
-      dias: [] // dias handled by new gym logic in Sprint 4
+      dias: [] // no longer used - sessions track date automatically
     }));
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(defaults));
     return JSON.parse(JSON.stringify(defaults));
+  },
+
+  /* ---- Session History ---- */
+  SESSION_KEY: 'fitpulse_gym_sessions',
+
+  getSessions(routineId) {
+    try {
+      const all = JSON.parse(localStorage.getItem(this.SESSION_KEY) || '[]');
+      return routineId ? all.filter(s => s.routineId === routineId) : all;
+    } catch { return []; }
+  },
+
+  saveSession(sessionData) {
+    try {
+      const all = JSON.parse(localStorage.getItem(this.SESSION_KEY) || '[]');
+      all.unshift(sessionData); // newest first
+      // Keep max 100 sessions
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(all.slice(0, 100)));
+    } catch {}
+  },
+
+  getLastSession(routineId) {
+    return this.getSessions(routineId)[0] || null;
+  },
+
+  calcVolume(session) {
+    // Total kg lifted = sum of (peso * reps) per set
+    if (!session?.exercises) return 0;
+    return session.exercises.reduce((total, ex) =>
+      total + (ex.sets || []).reduce((s, set) =>
+        s + ((set.weightDone || set.peso || 0) * (set.repsDone || set.reps || 0)), 0
+      ), 0
+    );
   },
 
   getById(id) {
@@ -157,8 +189,15 @@ const Routines = {
   },
 
   _routineCard(r) {
-    const DIAS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
-    const diasStr = r.dias && r.dias.length > 0 ? r.dias.map(d => DIAS[d]).join(' · ') : 'Sin días';
+    const last = this.getLastSession(r.id);
+    const vol  = last ? this.calcVolume(last) : 0;
+    const lastLabel = last
+      ? (() => {
+          const d = new Date(last.endedAt || last.startedAt);
+          return DIAS_SEMANA[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) +
+                 (vol > 0 ? ' · ' + Math.round(vol).toLocaleString() + ' kg' : '');
+        })()
+      : 'Sin sesiones aún';
     return `
       <div class="workout-cat-card ${r.gradient}" data-id="${r.id}" style="cursor:pointer;">
         <div class="cat-bg"></div>
@@ -166,17 +205,25 @@ const Routines = {
           <div class="cat-icon-wrap" style="margin-bottom:8px;opacity:0.9;">
             <i data-lucide="${r.icon}" style="width:28px;height:28px;"></i>
           </div>
-          <div class="cat-name" style="font-size:1rem;font-weight:800;margin-bottom:6px;">${r.name}</div>
+          <div class="cat-name" style="font-size:1rem;font-weight:800;margin-bottom:4px;">${r.name}</div>
           <div class="cat-count">
-            <i data-lucide="layers" style="width:14px;height:14px;margin-right:4px;opacity:0.7;"></i>
-            ${r.exercises.length} ejercicios · ${diasStr}
+            <i data-lucide="layers" style="width:13px;height:13px;margin-right:3px;opacity:0.7;"></i>
+            ${r.exercises.length} ejercicios
+          </div>
+          <div style="font-size:0.68rem;color:rgba(255,255,255,0.65);margin-top:4px;display:flex;align-items:center;gap:4px;">
+            <i data-lucide="clock" style="width:11px;height:11px;"></i>
+            ${lastLabel}
           </div>
         </div>
         <div style="position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:6px;">
           <button class="routine-edit-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           <button class="routine-del-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:0.9rem;cursor:pointer;backdrop-filter:blur(4px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
         </div>
       </div>
     `;
@@ -190,12 +237,26 @@ const Routines = {
     const overlay = document.getElementById('routine-overlay');
     if (!overlay) return;
 
+    const last = this.getLastSession(id);
+    const vol  = last ? this.calcVolume(last) : 0;
+    const lastLine = last
+      ? (() => {
+          const d = new Date(last.endedAt || last.startedAt);
+          return `Última sesión: ${DIAS_SEMANA[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}` +
+                 (vol > 0 ? ` · ${Math.round(vol).toLocaleString()} kg` : '');
+        })()
+      : null;
+
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:500px;max-height:90vh;overflow-y:auto;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <h2 style="font-size:1.1rem;font-weight:800;">${routine.icon} ${routine.name}</h2>
+          <h2 style="font-size:1.1rem;font-weight:800;">${routine.name}</h2>
           <button id="detail-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
         </div>
+        ${lastLine ? `<div style="font-size:0.78rem;color:var(--brand-light);font-weight:600;margin-bottom:14px;padding:8px 12px;background:rgba(124,58,237,0.1);border-radius:10px;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${lastLine}
+        </div>` : ''}
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${routine.exercises.map((ex, i) => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-input);border-radius:12px;">
@@ -208,7 +269,8 @@ const Routines = {
           `).join('')}
         </div>
         <button id="btn-start-routine" class="btn btn-primary btn-full" style="margin-top:20px;">
-          ▶ Iniciar sesión de gym
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Iniciar sesión de gym
         </button>
       </div>
     `;
@@ -348,8 +410,12 @@ const Routines = {
   },
 
   _advanceSession(s) {
+    // Haptic feedback — short pulse on set done
+    if (navigator.vibrate) navigator.vibrate(60);
     const ex = s.exercises[s.currentEx];
     if (ex.sets.length >= ex.targetSets) {
+      // Longer vibration when finishing an exercise
+      if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
       s.currentEx++;
       s.currentSet = 0;
       this._renderSession(s);
@@ -456,12 +522,33 @@ const Routines = {
           }).join('')}
         </div>
 
-        <button id="sess-finish" class="btn btn-primary btn-full">Cerrar</button>
+        <button id="sess-finish" class="btn btn-primary btn-full">Cerrar y guardar</button>
       </div>
     `;
     overlay.classList.add('active');
     Icons.init();
-    document.getElementById('sess-finish').onclick = () => overlay.classList.remove('active');
+    document.getElementById('sess-finish').onclick = () => {
+      // Save completed session to history
+      this.saveSession({
+        routineId: s.routineId,
+        routineName: s.routineName,
+        startedAt: s.startedAt,
+        endedAt: Date.now(),
+        exercises: s.exercises
+      });
+      // Auto-mark gym checklist item for today
+      try {
+        const today = Storage.today();
+        const cl = Storage.obtenerChecklist(today) || { checked: [], pct: 0 };
+        if (!cl.checked.includes('gym')) {
+          cl.checked.push('gym');
+          cl.pct = Math.round((cl.checked.length / 10) * 100);
+          Storage.guardarChecklist(today, cl);
+        }
+      } catch(e) {}
+      overlay.classList.remove('active');
+      this._render();
+    };
   },
 
   /* ---- Editor de rutina ---- */
@@ -511,13 +598,14 @@ const Routines = {
             </select>
           </div>
           <div>
-            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px;">Días</label>
+            <label style="${labelStyle}">Días</label>
             <div style="display:flex;gap:6px;" id="ed-dias">
               ${['D','L','M','X','J','V','S'].map((d,i) => `
                 <button class="ed-dia-btn" data-dia="${i}"
                   style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid ${routine?.dias?.includes(i)?'#7C3AED':'var(--border)'};background:${routine?.dias?.includes(i)?'rgba(124,58,237,0.2)':'var(--bg-input)'};color:${routine?.dias?.includes(i)?'#A78BFA':'var(--text-muted)'};font-weight:700;font-size:0.78rem;cursor:pointer;transition:all 0.15s;">${d}</button>
               `).join('')}
             </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Opcional — los días se registran automáticamente al hacer sesión.</div>
           </div>
         </div>
 
