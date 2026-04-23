@@ -46,6 +46,7 @@ const CloudSync = {
       console.error('CloudSync push error:', e);
     } finally {
       this._syncing = false;
+      this._setSyncDot('synced');
     }
   },
 
@@ -139,9 +140,31 @@ const CloudSync = {
   /* Debounced save: call this after any data change */
   onDataChanged() {
     if (!Auth.initialized || !Auth.user) return;
-    // Debounce: wait 3 seconds after last change before syncing
+    this._setSyncDot('syncing');
     clearTimeout(this._saveTimer);
     this._saveTimer = setTimeout(() => this.pushToCloud(), 1500);
+  },
+
+  /* Sync dot helper — inserts a small dot into the header if not present */
+  _setSyncDot(state) {
+    let dot = document.getElementById('sync-status-dot');
+    if (!dot) {
+      const header = document.querySelector('.header-actions');
+      if (!header) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'sync-indicator';
+      wrap.id = 'sync-indicator-wrap';
+      wrap.innerHTML = `<span class="sync-dot" id="sync-status-dot"></span><span id="sync-status-label"></span>`;
+      header.insertBefore(wrap, header.firstChild);
+      dot = document.getElementById('sync-status-dot');
+    }
+    const label = document.getElementById('sync-status-label');
+    dot.className = 'sync-dot ' + state;
+    if (label) {
+      label.textContent = state === 'syncing' ? 'Guardando…' : state === 'synced' ? 'Guardado' : '';
+      // Auto-hide label after 3s when synced
+      if (state === 'synced') setTimeout(() => { if (label) label.textContent = ''; }, 3000);
+    }
   },
 
   /* Auto-sync scheduler */

@@ -769,7 +769,21 @@ const Config = {
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             Notificaciones
           </h3>
-          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Prueba que las notificaciones funcionan en tu dispositivo.</p>
+          <div id="notif-status-row" style="margin-bottom:14px;font-size:0.83rem;color:var(--text-muted);"></div>
+          <!-- Toggle global -->
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+            <div>
+              <div style="font-weight:700;font-size:0.88rem;">Activar notificaciones</div>
+              <div style="font-size:0.73rem;color:var(--text-muted);">Recordatorios de comidas, gym y cierre del día</div>
+            </div>
+            <label class="toggle-switch" style="flex-shrink:0;">
+              <input type="checkbox" id="notif-global-toggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <!-- Individual toggles -->
+          <div id="notif-items" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+          <button id="btn-save-notif" class="btn btn-primary btn-full" style="margin-bottom:8px;">Guardar preferencias</button>
           <button id="btn-test-notif" class="btn btn-secondary btn-full">Enviar notificación de prueba</button>
         </div>
       </div>
@@ -830,6 +844,71 @@ const Config = {
 
     // Test notification
     document.getElementById('btn-test-notif').addEventListener('click', () => Notificaciones.test());
+
+    // Notification config UI
+    const notifCfg = JSON.parse(localStorage.getItem('fitpulse_notif_cfg') || '{}');
+    const globalOn  = notifCfg.global !== false;
+    const globalToggle = document.getElementById('notif-global-toggle');
+    if (globalToggle) globalToggle.checked = globalOn;
+
+    const notifStatusRow = document.getElementById('notif-status-row');
+    if (notifStatusRow) {
+      const perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
+      if (perm === 'granted') {
+        notifStatusRow.innerHTML = '<span style="color:#30D158;">&#10003; Permiso concedido</span>';
+      } else if (perm === 'denied') {
+        notifStatusRow.innerHTML = '<span style="color:#FF453A;">&#9888; Bloqueado por el navegador — actívalo en Ajustes del sitio</span>';
+      } else {
+        notifStatusRow.innerHTML = '<span style="color:#FFD60A;">&#9711; Sin permiso — toca "Guardar preferencias" para solicitarlo</span>';
+      }
+    }
+
+    const NOTIF_LABELS = [
+      { id: 'pre_entreno',     label: 'Pre-entreno (gym)',      hora: '05:45' },
+      { id: 'pesaje',          label: 'Recordatorio pesaje',    hora: '06:30' },
+      { id: 'desayuno',        label: 'Desayuno post-gym',      hora: '07:05' },
+      { id: 'merienda_am',     label: 'Merienda mañana',        hora: '10:00' },
+      { id: 'almuerzo',        label: 'Almuerzo',               hora: '12:30' },
+      { id: 'merienda_pm',     label: 'Merienda tarde',         hora: '15:30' },
+      { id: 'cena',            label: 'Cena',                   hora: '19:00' },
+      { id: 'cierre',          label: 'Cierre del día',         hora: '20:45' },
+    ];
+
+    const notifItems = document.getElementById('notif-items');
+    if (notifItems) {
+      notifItems.innerHTML = NOTIF_LABELS.map(n => {
+        const isOn  = notifCfg[n.id]?.on !== false;
+        const hora  = notifCfg[n.id]?.hora || n.hora;
+        return `
+          <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border-radius:10px;padding:10px 12px;">
+            <label class="toggle-switch" style="flex-shrink:0;">
+              <input type="checkbox" class="notif-item-toggle" data-id="${n.id}" ${isOn ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.82rem;font-weight:700;">${n.label}</div>
+            </div>
+            <input type="time" class="notif-item-hora" data-id="${n.id}" value="${hora}"
+              style="border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--bg-card);color:var(--text-primary);font-size:0.8rem;width:90px;">
+          </div>`;
+      }).join('');
+    }
+
+    document.getElementById('btn-save-notif')?.addEventListener('click', async () => {
+      const cfg = { global: globalToggle?.checked !== false };
+      document.querySelectorAll('.notif-item-toggle').forEach(cb => {
+        const id = cb.dataset.id;
+        const hora = document.querySelector(`.notif-item-hora[data-id="${id}"]`)?.value;
+        cfg[id] = { on: cb.checked, hora: hora || undefined };
+      });
+      localStorage.setItem('fitpulse_notif_cfg', JSON.stringify(cfg));
+      // Apply updated schedule
+      if (cfg.global && typeof Notificaciones !== 'undefined') {
+        await Notificaciones.solicitarPermiso();
+        Notificaciones._scheduleToday();
+      }
+      showToast('Preferencias de notificaciones guardadas');
+    });
 
     // Export
     document.getElementById('btn-exportar').addEventListener('click', () => {
