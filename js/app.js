@@ -413,10 +413,10 @@ const App = {
       </div>
     `;
 
-    let selectedIcon = existing?.icon || '💧';
+    let selectedIcon = existing?.icon || 'droplets';
     let selectedSec  = existing?.seccion || defaultSec;
 
-    Icons.init();
+    Icons.init(overlay);
     document.getElementById('item-ed-close').onclick = () => overlay.classList.remove('active');
 
     overlay.querySelectorAll('.ic-btn').forEach(btn => {

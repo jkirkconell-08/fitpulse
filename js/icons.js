@@ -76,12 +76,24 @@ const Icons = {
   },
 
   /**
-   * Initialize Lucide icons in the whole document (or a container)
-   * Call after any dynamic innerHTML update
+   * Initialize Lucide icons in a container.
+   * Uses requestAnimationFrame so the DOM is painted first.
+   * Retries up to 4 times if the Lucide CDN is not yet loaded (defer).
    */
-  init(container = document) {
-    if (window.lucide) {
-      lucide.createIcons({ attrs: { 'stroke-width': '2' }, rootElement: container });
+  init(container = document, _retries = 4) {
+    const run = () => {
+      if (window.lucide) {
+        try {
+          lucide.createIcons({ attrs: { 'stroke-width': '2' }, rootElement: container });
+        } catch(e) { console.warn('Lucide init error:', e); }
+      } else if (_retries > 0) {
+        setTimeout(() => Icons.init(container, _retries - 1), 150);
+      }
+    };
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(run);
+    } else {
+      run();
     }
   }
 };
