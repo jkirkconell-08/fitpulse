@@ -2,17 +2,17 @@
    FitPulse - Service Worker v1
    ========================================================= */
 
-const CACHE_NAME = 'fitpulse-v12';
+const CACHE_NAME = 'fitpulse-v13';
 const ASSETS = [
   './', './login.html', './onboarding.html', './privacy.html',
   './index.html', './dashboard.html', './comidas.html',
   './ejercicios.html', './progreso.html', './historial.html',
-  './medidas.html', './menu.html', './config.html',
+  './medidas.html', './menu.html', './config.html', './cardio.html',
   './css/app.css',
   './js/firebase-config.js', './js/storage.js', './js/auth.js',
   './js/cloud-sync.js', './js/app.js', './js/notifications.js',
   './js/charts.js', './js/comidas.js', './js/dashboard.js',
-  './js/ejercicios.js', './js/medidas.js',
+  './js/ejercicios.js', './js/medidas.js', './js/cardio.js',
   './manifest.json', './icon-192.png', './icon-512.png'
 ];
 

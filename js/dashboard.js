@@ -131,7 +131,7 @@ const Dashboard = {
         </div>
       </div>
 
-      <!-- Gym esta semana -->
+      <!-- Gym esta semana + métricas rutinas -->
       <div class="dash-card fade-in">
         <div class="dash-card-header">
           <h3><i data-lucide="dumbbell" class="icon" style="width:18px;height:18px;margin-right:6px;"></i>Gym</h3>
@@ -146,6 +146,7 @@ const Dashboard = {
             </div>`;
           }).join('')}
         </div>
+        ${this._renderGymMetrics()}
       </div>
 
       <!-- Peso progress -->
@@ -170,6 +171,41 @@ const Dashboard = {
 
     Icons.init();
     document.getElementById('btn-compartir').addEventListener('click', () => this._share(datos, config, lastPeso));
+  },
+
+  /* ─── Gym metrics: última sesión + volumen semanal ─── */
+  _renderGymMetrics() {
+    try {
+      const sessions = typeof Routines !== 'undefined' ? Routines.getSessions() : [];
+      if (sessions.length === 0) return '';
+
+      // Last session
+      const last = sessions[0];
+      const lastDate = new Date(last.endedAt || last.startedAt);
+      const lastVol  = typeof Routines !== 'undefined' ? Routines.calcVolume(last) : 0;
+      const DIAS_S = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+      const lastLabel = `${DIAS_S[lastDate.getDay()]} ${lastDate.getDate()}/${lastDate.getMonth()+1}`;
+
+      // Volume this week
+      const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+      const weekSessions = sessions.filter(s => (s.endedAt || s.startedAt) >= weekAgo);
+      const weekVol = weekSessions.reduce((t, s) => t + (typeof Routines !== 'undefined' ? Routines.calcVolume(s) : 0), 0);
+
+      return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+          <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:10px 12px;">
+            <div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Última sesión</div>
+            <div style="font-weight:800;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${last.routineName}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${lastLabel} · ${Math.round(lastVol).toLocaleString()} kg</div>
+          </div>
+          <div style="background:rgba(48,209,88,0.08);border:1px solid rgba(48,209,88,0.2);border-radius:12px;padding:10px 12px;">
+            <div style="font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Volumen semana</div>
+            <div style="font-weight:800;font-size:0.9rem;">${Math.round(weekVol).toLocaleString()} kg</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${weekSessions.length} sesiones · 7 días</div>
+          </div>
+        </div>
+      `;
+    } catch(e) { return ''; }
   },
 
   _getGreetingMsg() {
@@ -197,106 +233,170 @@ const Dashboard = {
     return config.nombre || 'Atleta';
   },
 
-  /* ─── Compartir como imagen ─── */
+  /* ─── Compartir como imagen — Premium redesign ─── */
   async _share(datos, config, lastPeso) {
+    const W = 640, H = 900;
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 800;
+    canvas.width  = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // Background
-    ctx.fillStyle = '#0f1923';
-    ctx.fillRect(0, 0, 600, 800);
+    // — Background gradient —
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0,   '#0A0A12');
+    bg.addColorStop(0.5, '#12101E');
+    bg.addColorStop(1,   '#0A0A12');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-    // Header
-    ctx.fillStyle = '#6C3CE1';
-    ctx.fillRect(0, 0, 600, 100);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 32px Arial';
-    ctx.fillText('FitPulse', 30, 55);
-    ctx.font = '16px Arial';
-    ctx.fillText('Resumen Semanal', 30, 80);
+    // — Purple glow top-right —
+    const glow = ctx.createRadialGradient(W, 0, 0, W, 0, 420);
+    glow.addColorStop(0,   'rgba(124,58,237,0.28)');
+    glow.addColorStop(1,   'rgba(124,58,237,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
 
-    // Stats
-    ctx.fillStyle = '#1e2d3d';
-    ctx.beginPath(); ctx.roundRect(20, 120, 270, 100, 12); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(310, 120, 270, 100, 12); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(20, 240, 270, 100, 12); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(310, 240, 270, 100, 12); ctx.fill();
+    // — Header pill —
+    ctx.fillStyle = 'rgba(124,58,237,0.15)';
+    ctx.beginPath(); ctx.roundRect(24, 24, W - 48, 80, 20); ctx.fill();
+    ctx.strokeStyle = 'rgba(124,58,237,0.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(24, 24, W - 48, 80, 20); ctx.stroke();
 
-    ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 28px Arial';
-    ctx.fillText(`${lastPeso.peso} kg`, 40, 170);
-    ctx.fillText(`${datos.promedioCal}`, 330, 170);
-    ctx.fillText(`${datos.totalAgua} vasos`, 40, 290);
-    ctx.fillText(`${datos.cumplimientoPromedio}%`, 330, 290);
+    ctx.fillStyle = '#A78BFA';
+    ctx.font = 'bold 26px Arial';
+    ctx.fillText('FitPulse', 48, 72);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px Arial';
+    const dateStr = new Date().toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
+    ctx.fillText(dateStr, 48, 92);
+    // FP badge right
+    ctx.fillStyle = '#7C3AED';
+    ctx.beginPath(); ctx.arc(W - 60, 64, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('FP', W - 60, 70); ctx.textAlign = 'left';
 
-    ctx.fillStyle = '#94a3b8'; ctx.font = '14px Arial';
-    ctx.fillText('Peso actual', 40, 200);
-    ctx.fillText('Prom. Calorías/día', 330, 200);
-    ctx.fillText('Agua esta semana', 40, 320);
-    ctx.fillText('Cumplimiento promedio', 330, 320);
+    // — Helper: draw metric card —
+    const metricCard = (x, y, w, h, label, value, unit, accent) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, 16); ctx.fill();
+      ctx.strokeStyle = `rgba(${accent},0.3)`; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, 16); ctx.stroke();
+      ctx.fillStyle = `rgba(${accent},0.7)`;
+      ctx.font = 'bold 11px Arial';
+      ctx.fillText(label.toUpperCase(), x + 14, y + 22);
+      ctx.fillStyle = '#F0F0F8';
+      ctx.font = `bold 28px Arial`;
+      ctx.fillText(value, x + 14, y + 58);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '12px Arial';
+      ctx.fillText(unit, x + 14, y + 76);
+    };
 
-    // Bar chart
-    const DIAS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    ctx.fillStyle = '#1e2d3d';
-    ctx.beginPath(); ctx.roundRect(20, 370, 560, 220, 12); ctx.fill();
+    // — 4 metric cards —
+    const gymSessions = typeof Routines !== 'undefined' ? Routines.getSessions() : [];
+    const weekAgo = Date.now() - 7*24*3600*1000;
+    const weekVol  = gymSessions.filter(s=>(s.endedAt||s.startedAt)>=weekAgo)
+                      .reduce((t,s)=>t+(typeof Routines!=='undefined'?Routines.calcVolume(s):0),0);
 
-    ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 14px Arial';
-    ctx.fillText('Calorías de la semana', 40, 400);
+    const gap = 12, cw = (W - 48 - gap) / 2, ch = 96, cy = 124;
+    metricCard(24,        cy, cw, ch, 'Peso actual',     `${lastPeso.peso}`, 'kg',          '167,139,250');
+    metricCard(24+cw+gap, cy, cw, ch, 'Prom. Calorías',  `${datos.promedioCal}`, 'kcal/día','48,209,88');
+    metricCard(24,        cy+ch+gap, cw, ch, 'Agua semana', `${datos.totalAgua}`, 'vasos',  '6,182,212');
+    metricCard(24+cw+gap, cy+ch+gap, cw, ch, 'Volumen gym', `${Math.round(weekVol/1000*10)/10||0}`, 'ton/sem', '251,191,36');
 
+    // — Weekly cal bars —
+    const DIAS7 = ['L','M','M','J','V','S','D'];
+    const bx = 24, by = 350, bw = W - 48, bh = 180;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 16); ctx.fill();
+    ctx.fillStyle = 'rgba(167,139,250,0.6)'; ctx.font = 'bold 12px Arial';
+    ctx.fillText('Calorías de la semana', bx + 14, by + 24);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '11px Arial';
+    ctx.fillText(`Meta: ${config.metaCal} kcal`, bx + bw - 110, by + 24);
+
+    const maxCal = Math.max(...datos.dias.map(d=>d.cal), config.metaCal, 1);
+    const barW   = Math.floor((bw - 40) / 7) - 8;
     datos.dias.forEach((d, i) => {
-      const x = 50 + i * 76;
-      const maxH = 140;
-      const pct = config.metaCal > 0 ? Math.min(1, d.cal / config.metaCal) : 0;
-      const barH = pct * maxH;
-
-      ctx.fillStyle = d.cal > config.metaCal ? '#ef4444' : '#6C3CE1';
-      ctx.beginPath(); ctx.roundRect(x, 420 + maxH - barH, 40, barH, 4); ctx.fill();
-
-      ctx.fillStyle = '#94a3b8'; ctx.font = '12px Arial';
-      ctx.fillText(DIAS[i], x + 14, 575);
+      const bBarX = bx + 20 + i * ((bw - 40) / 7);
+      const bBarH = Math.max(0, (d.cal / maxCal) * 110);
+      const isOver = d.cal > config.metaCal;
+      const grad   = ctx.createLinearGradient(0, by+bh-20-bBarH, 0, by+bh-20);
+      grad.addColorStop(0, isOver ? '#FF453A' : '#7C3AED');
+      grad.addColorStop(1, isOver ? '#FF6B6B' : '#A78BFA');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.roundRect(bBarX, by+bh-20-bBarH, barW, Math.max(2,bBarH), [4,4,0,0]); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px Arial'; ctx.textAlign='center';
+      ctx.fillText(DIAS7[i], bBarX + barW/2, by + bh - 4);
       if (d.cal > 0) {
-        ctx.fillStyle = '#e2e8f0'; ctx.font = '10px Arial';
-        ctx.fillText(d.cal.toString(), x + 4, 415 + maxH - barH);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '10px Arial';
+        ctx.fillText(d.cal, bBarX + barW/2, by+bh-22-bBarH);
       }
+      ctx.textAlign = 'left';
+    });
+    // Meta line
+    const metaY = by + bh - 20 - (config.metaCal / maxCal * 110);
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(255,213,0,0.4)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(bx+14, metaY); ctx.lineTo(bx+bw-14, metaY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // — Progress bar —
+    const py = 556;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.beginPath(); ctx.roundRect(24, py, W-48, 80, 16); ctx.fill();
+    ctx.fillStyle = 'rgba(167,139,250,0.6)'; ctx.font = 'bold 12px Arial';
+    ctx.fillText('Progreso hacia meta', 38, py + 22);
+    const progPct = Math.max(0, Math.min(1, (config.pesoInicial - lastPeso.peso) / (Math.max(0.1, config.pesoInicial - config.meta))));
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.beginPath(); ctx.roundRect(38, py + 32, W-76, 18, 9); ctx.fill();
+    const progG = ctx.createLinearGradient(38, 0, W-38, 0);
+    progG.addColorStop(0, '#6C3CE1'); progG.addColorStop(1, '#A78BFA');
+    ctx.fillStyle = progG;
+    ctx.beginPath(); ctx.roundRect(38, py+32, Math.max(18,(W-76)*progPct), 18, 9); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = '11px Arial';
+    ctx.fillText(`${config.pesoInicial} kg  →  ${config.meta} kg  (${Math.round(progPct*100)}% completado)`, 38, py+68);
+
+    // — Cumplimiento dots —
+    const dy = 660;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.beginPath(); ctx.roundRect(24, dy, W-48, 90, 16); ctx.fill();
+    ctx.fillStyle = 'rgba(167,139,250,0.6)'; ctx.font = 'bold 12px Arial';
+    ctx.fillText('Cumplimiento semanal', 38, dy+22);
+    datos.dias.forEach((d, i) => {
+      const cx = 38 + i * 82, cy2 = dy + 58;
+      const color = d.cumplimiento >= 80 ? '#30D158' : d.cumplimiento >= 50 ? '#FFD60A' : d.cumplimiento > 0 ? '#FF453A' : '#3A3A48';
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(cx + 18, cy2, 18, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign='center';
+      ctx.fillText(d.cumplimiento > 0 ? d.cumplimiento+'%' : '-', cx+18, cy2+4);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '10px Arial';
+      ctx.fillText(DIAS7[i], cx+18, dy+84); ctx.textAlign='left';
     });
 
-    // Footer
-    ctx.fillStyle = '#64748b'; ctx.font = '13px Arial';
-    ctx.fillText(`Meta: ${config.meta} kg · ${config.metaCal} kcal/día`, 20, 640);
-    ctx.fillStyle = '#6C3CE1'; ctx.font = 'bold 14px Arial';
-    ctx.fillText('Generado con FitPulse', 20, 670);
+    // — Footer —
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(0, H-60, W, 60);
+    ctx.fillStyle = '#7C3AED'; ctx.font = 'bold 14px Arial';
+    ctx.fillText('FitPulse — Tu compañero fitness', 24, H-28);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px Arial';
+    ctx.fillText('fitpulse.app', W-90, H-28);
 
-    // Progress bar
-    ctx.fillStyle = '#253443';
-    ctx.beginPath(); ctx.roundRect(20, 700, 560, 20, 10); ctx.fill();
-    const progPct = Math.min(1, (config.pesoInicial - lastPeso.peso) / (config.pesoInicial - config.meta));
-    ctx.fillStyle = '#6C3CE1';
-    ctx.beginPath(); ctx.roundRect(20, 700, Math.max(20, 560 * progPct), 20, 10); ctx.fill();
-
-    ctx.fillStyle = '#94a3b8'; ctx.font = '12px Arial';
-    ctx.fillText(`${config.pesoInicial} kg → ${config.meta} kg`, 20, 740);
-
-    // Download or share
+    // — Download/share —
     canvas.toBlob(async (blob) => {
       if (navigator.share && navigator.canShare) {
         try {
-          const file = new File([blob], 'nutritrack-semanal.png', { type: 'image/png' });
+          const file = new File([blob], 'fitpulse-semanal.png', { type: 'image/png' });
           await navigator.share({ title: 'Mi progreso FitPulse', files: [file] });
-        } catch (e) {
-          this._downloadBlob(blob);
-        }
-      } else {
-        this._downloadBlob(blob);
-      }
+        } catch(e) { this._downloadBlob(blob); }
+      } else { this._downloadBlob(blob); }
     }, 'image/png');
   },
 
   _downloadBlob(blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `nutritrack_semanal_${Storage.today()}.png`;
+    a.href = url; a.download = `fitpulse_semanal_${Storage.today()}.png`;
     a.click(); URL.revokeObjectURL(url);
-    showToast('Imagen descargada');
+    showToast('Imagen descargada ✅');
   }
 };

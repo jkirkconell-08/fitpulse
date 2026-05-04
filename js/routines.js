@@ -416,9 +416,15 @@ const Routines = {
     if (ex.sets.length >= ex.targetSets) {
       // Longer vibration when finishing an exercise
       if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
+      s._lastDirection = 'forward';
       s.currentEx++;
       s.currentSet = 0;
       this._renderSession(s);
+      // Apply slide-in animation to overlay content
+      requestAnimationFrame(() => {
+        const el = document.querySelector('#routine-overlay .overlay-content');
+        if (el) { el.classList.add('ex-slide-in'); setTimeout(() => el.classList.remove('ex-slide-in'), 350); }
+      });
     } else {
       s.currentSet++;
       this._showRestTimer(ex.restSeconds, () => this._renderSession(s));
@@ -522,11 +528,22 @@ const Routines = {
           }).join('')}
         </div>
 
-        <button id="sess-finish" class="btn btn-primary btn-full">Cerrar y guardar</button>
+        <div style="display:flex;gap:8px;margin-top:0;">
+          <button id="sess-share" class="btn btn-secondary" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Compartir
+          </button>
+          <button id="sess-finish" class="btn btn-primary" style="flex:2;">Cerrar y guardar</button>
+        </div>
       </div>
     `;
     overlay.classList.add('active');
     Icons.init();
+
+    document.getElementById('sess-share')?.addEventListener('click', () => {
+      this._shareSession({ routineName: s.routineName, duration, totalSets, totalReps, exercises: s.exercises });
+    });
+
     document.getElementById('sess-finish').onclick = () => {
       // Save completed session to history
       this.saveSession({
@@ -733,4 +750,74 @@ const Routines = {
     const btn = rowEl.querySelector('.btn-remove-ex');
     if (btn) btn.addEventListener('click', () => rowEl.remove());
   }
+,
+
+  /* share session image */
+  async _shareSession({ routineName, duration, totalSets, totalReps, exercises }) {
+    const W = 640, H = Math.max(700, 300 + exercises.length * 68);
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0A0A12'); bg.addColorStop(1, '#12101E');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(124,58,237,0.18)';
+    ctx.beginPath(); ctx.roundRect(20, 20, W-40, 90, 18); ctx.fill();
+    ctx.strokeStyle = 'rgba(124,58,237,0.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(20, 20, W-40, 90, 18); ctx.stroke();
+    ctx.fillStyle = '#A78BFA'; ctx.font = 'bold 22px Arial';
+    ctx.fillText('FitPulse - Sesion de Gym', 40, 58);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px Arial';
+    const dateStr = new Date().toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
+    ctx.fillText(routineName + ' - ' + dateStr, 40, 82);
+    const sC = (x, y, w, h, v, l, a) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.roundRect(x,y,w,h,14); ctx.fill();
+      ctx.strokeStyle = 'rgba(' + a + ',0.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(x,y,w,h,14); ctx.stroke();
+      ctx.fillStyle = '#F0F0F8'; ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
+      ctx.fillText(v, x+w/2, y+h*0.55);
+      ctx.fillStyle = 'rgba(' + a + ',0.7)'; ctx.font = '11px Arial';
+      ctx.fillText(l.toUpperCase(), x+w/2, y+h*0.82); ctx.textAlign = 'left';
+    };
+    const sw = (W - 64) / 3;
+    sC(20, 130, sw, 80, duration, 'minutos', '167,139,250');
+    sC(20+sw+12, 130, sw, 80, totalSets, 'series', '48,209,88');
+    sC(20+sw*2+24, 130, sw, 80, totalReps, 'reps', '251,191,36');
+    let ey = 240;
+    exercises.forEach(ex => {
+      const sets = ex.sets || [];
+      const done = sets.filter(s => s.status === 'done').length;
+      const skip = sets.filter(s => s.status === 'skipped').length;
+      const col = sets.length===0 ? '#636366' : skip===sets.length ? '#FF453A' : done===ex.targetSets ? '#30D158' : '#FFD60A';
+      const lbl = sets.length===0 ? 'SIN HACER' : skip===sets.length ? 'SALTADO' : done===ex.targetSets ? 'COMPLETO' : 'PARCIAL';
+      ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.roundRect(20,ey,W-40,56,12); ctx.fill();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(20,ey,4,56,[12,0,0,12]); ctx.fill();
+      ctx.fillStyle = '#F0F0F8'; ctx.font = 'bold 14px Arial'; ctx.fillText(ex.name, 36, ey+22);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px Arial';
+      const setsStr = sets.map(st => (st.repsDone||0) + 'r' + (st.weightDone ? ' x ' + st.weightDone + 'lbs' : '')).join(' - ') || '-';
+      ctx.fillText(setsStr, 36, ey+40);
+      ctx.fillStyle = col; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'right';
+      ctx.fillText(lbl, W-30, ey+22); ctx.textAlign = 'left'; ey += 64;
+    });
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(0, H-50, W, 50);
+    ctx.fillStyle = '#7C3AED'; ctx.font = 'bold 13px Arial';
+    ctx.fillText('FitPulse - Tu companero fitness', 24, H-18);
+    canvas.toBlob(async blob => {
+      if (navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], 'fitpulse-sesion.png', { type: 'image/png' });
+          await navigator.share({ title: 'Sesion: ' + routineName, files: [file] });
+        } catch(e) { this._dlBlob(blob); }
+      } else { this._dlBlob(blob); }
+    }, 'image/png');
+  },
+
+  _dlBlob(blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'fitpulse_sesion_' + new Date().toISOString().slice(0,10) + '.png';
+    a.click(); URL.revokeObjectURL(url);
+    showToast('Imagen descargada');
+  }
+
 };

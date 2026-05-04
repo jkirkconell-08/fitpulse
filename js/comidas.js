@@ -455,18 +455,37 @@ const Comidas = {
     this._render();
   },
 
-  /* ────── Food Search Overlay ────── */
+  /* ────── Food Search Overlay — Multi-Select Cart ────── */
   _showFoodSearch() {
     const overlay = document.getElementById('food-overlay');
     if (!overlay) return;
     overlay.classList.add('active');
 
-    const searchInput = document.getElementById('food-search-input');
-    const resultsDiv = document.getElementById('food-search-results');
-    const catBtns = document.getElementById('food-cat-btns');
-    const closeBtn = document.getElementById('food-overlay-close');
+    this.cart = []; // reset cart each time
 
-    // Render category buttons
+    const searchInput = document.getElementById('food-search-input');
+    const resultsDiv  = document.getElementById('food-search-results');
+    const catBtns     = document.getElementById('food-cat-btns');
+    const closeBtn    = document.getElementById('food-overlay-close');
+
+    // Cart bar (floating)
+    let cartBar = overlay.querySelector('.cart-bar');
+    if (!cartBar) {
+      cartBar = document.createElement('div');
+      cartBar.className = 'cart-bar';
+      cartBar.innerHTML = `
+        <div class="cart-bar-info">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61H19a2 2 0 001.99-1.79l1.01-7.2H6"/></svg>
+          <span id="cart-count">0 seleccionados</span>
+          <span id="cart-kcal" style="color:var(--brand-light);font-weight:800;"></span>
+        </div>
+        <button id="cart-confirm" class="btn btn-primary" style="padding:8px 18px;font-size:0.85rem;">Agregar</button>
+      `;
+      overlay.querySelector('.overlay-content').appendChild(cartBar);
+    }
+    this._updateCartBar();
+
+    // Category buttons
     catBtns.innerHTML = `<button class="cat-btn active" data-cat="all">Todos</button>` +
       FOOD_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${c.id}"><i data-lucide="${c.icon}" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>${c.name}</button>`).join('') +
       `<button class="cat-btn" data-cat="custom"><i data-lucide="pencil" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>Personalizado</button>`;
@@ -477,17 +496,16 @@ const Comidas = {
       if (cat === 'custom') {
         resultsDiv.innerHTML = this._renderCustomForm();
         this._bindCustomForm(overlay);
+        cartBar.style.display = 'none';
         return;
       }
+      cartBar.style.display = '';
 
       let foods = FOOD_DB;
       if (cat !== 'all') foods = foods.filter(f => f.cat === cat);
       if (filter.trim()) {
         const q = filter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        foods = foods.filter(f => {
-          const name = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          return name.includes(q);
-        });
+        foods = foods.filter(f => f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q));
       }
 
       if (foods.length === 0) {
@@ -495,35 +513,47 @@ const Comidas = {
         return;
       }
 
-      resultsDiv.innerHTML = foods.map(f => `
-        <div class="food-result" data-food-id="${f.id}">
-          <div class="food-result-info">
-            <div class="food-result-name">${f.name}</div>
-            <div class="food-result-detail">${f.serving} · ${f.cal} kcal · P:${f.prot}g C:${f.carb}g G:${f.fat}g</div>
-          </div>
-          <button class="food-result-add">+</button>
-        </div>
-      `).join('');
+      resultsDiv.innerHTML = foods.map(f => {
+        const inCart = this.cart.some(c => c.id === f.id);
+        return `
+          <div class="food-result${inCart ? ' in-cart' : ''}" data-food-id="${f.id}">
+            <label class="food-result-check">
+              <input type="checkbox" class="food-cb" data-food-id="${f.id}" ${inCart ? 'checked' : ''}>
+              <span class="food-cb-box"></span>
+            </label>
+            <div class="food-result-info">
+              <div class="food-result-name">${f.name}</div>
+              <div class="food-result-detail">${f.serving} · ${f.cal} kcal · P:${f.prot}g C:${f.carb}g G:${f.fat}g</div>
+            </div>
+          </div>`;
+      }).join('');
 
-      resultsDiv.querySelectorAll('.food-result-add').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = parseInt(e.target.closest('.food-result').dataset.foodId);
+      // Wire checkboxes
+      resultsDiv.querySelectorAll('.food-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const id = parseInt(cb.dataset.foodId);
           const food = FOOD_DB.find(f => f.id === id);
-          if (food) this._showAddModal(food, overlay);
+          if (!food) return;
+          if (cb.checked) {
+            if (!this.cart.some(c => c.id === id)) this.cart.push({ ...food, qty: 1 });
+            cb.closest('.food-result').classList.add('in-cart');
+          } else {
+            this.cart = this.cart.filter(c => c.id !== id);
+            cb.closest('.food-result').classList.remove('in-cart');
+          }
+          this._updateCartBar();
         });
       });
+
+      Icons.init(resultsDiv);
     };
 
     renderResults();
 
-    // Search input
     searchInput.value = '';
     searchInput.focus();
-    searchInput.addEventListener('input', () => {
-      renderResults(searchInput.value, currentCat);
-    });
+    searchInput.addEventListener('input', () => renderResults(searchInput.value, currentCat));
 
-    // Category buttons
     catBtns.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         catBtns.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
@@ -533,8 +563,129 @@ const Comidas = {
       });
     });
 
-    // Close
-    closeBtn.onclick = () => overlay.classList.remove('active');
+    Icons.init(catBtns);
+
+    document.getElementById('cart-confirm')?.addEventListener('click', () => {
+      if (this.cart.length === 0) { this._toast('Selecciona al menos un alimento', 'warning'); return; }
+      this._showCartConfirm(overlay);
+    });
+
+    closeBtn.onclick = () => { overlay.classList.remove('active'); this.cart = []; };
+  },
+
+  _updateCartBar() {
+    const count = this.cart.length;
+    const kcal  = this.cart.reduce((t, f) => t + (f.cal * (f.qty || 1)), 0);
+    const el    = document.getElementById('cart-count');
+    const ek    = document.getElementById('cart-kcal');
+    const btn   = document.getElementById('cart-confirm');
+    if (el) el.textContent = count === 0 ? 'Ninguno seleccionado' : `${count} seleccionado${count > 1 ? 's' : ''}`;
+    if (ek) ek.textContent = count > 0 ? `· ${Math.round(kcal)} kcal` : '';
+    if (btn) btn.disabled = count === 0;
+  },
+
+  /* Cart confirm: set qty + meal type for each selected item */
+  _showCartConfirm(overlay) {
+    const modal = document.getElementById('food-add-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    const now = new Date();
+    const h   = now.getHours();
+    let autoType = 'cena';
+    if (h < 9) autoType = 'desayuno';
+    else if (h < 11) autoType = 'merienda_am';
+    else if (h < 14) autoType = 'almuerzo';
+    else if (h < 17) autoType = 'merienda_pm';
+
+    modal.innerHTML = `
+      <div class="overlay-content" style="max-width:420px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h2 style="font-size:1.05rem;font-weight:800;">Confirmar selección</h2>
+          <button id="cart-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">✕</button>
+        </div>
+
+        <!-- Global meal type -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Asignar a comida</label>
+          <select id="cart-global-tipo" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
+            ${MEAL_TYPES.map(m => `<option value="${m.id}" ${m.id === autoType ? 'selected' : ''}>${m.name}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Items list -->
+        <div id="cart-items-list" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:14px;">
+          ${this.cart.map((f, i) => `
+            <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border-radius:10px;padding:10px 12px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">${f.serving} · ${f.cal} kcal</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <button class="cart-qty-btn minus" data-idx="${i}" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+                <input type="number" class="cart-qty-input" data-idx="${i}" value="${f.qty || 1}" min="0.5" step="0.5"
+                  style="width:44px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
+                <button class="cart-qty-btn plus" data-idx="${i}" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div id="cart-total-preview" style="text-align:center;font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;"></div>
+
+        <div style="display:flex;gap:10px;">
+          <button id="cart-modal-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
+          <button id="cart-modal-confirm" class="btn btn-primary" style="flex:2;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+            Agregar ${this.cart.length} alimento${this.cart.length > 1 ? 's' : ''}
+          </button>
+        </div>
+      </div>
+    `;
+
+    const updateTotal = () => {
+      const total = this.cart.reduce((t, f) => t + (f.cal * (f.qty || 1)), 0);
+      const el = document.getElementById('cart-total-preview');
+      if (el) el.textContent = `Total: ${Math.round(total)} kcal`;
+    };
+    updateTotal();
+
+    // Qty buttons
+    modal.querySelectorAll('.cart-qty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const input = modal.querySelector(`.cart-qty-input[data-idx="${idx}"]`);
+        let val = parseFloat(input.value) || 1;
+        if (btn.classList.contains('plus'))  val = Math.min(10, val + 0.5);
+        if (btn.classList.contains('minus')) val = Math.max(0.5, val - 0.5);
+        input.value = val; this.cart[idx].qty = val;
+        updateTotal(); this._updateCartBar();
+      });
+    });
+    modal.querySelectorAll('.cart-qty-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const idx = parseInt(inp.dataset.idx);
+        this.cart[idx].qty = parseFloat(inp.value) || 1;
+        updateTotal(); this._updateCartBar();
+      });
+    });
+
+    document.getElementById('cart-modal-close').onclick  = () => modal.classList.remove('active');
+    document.getElementById('cart-modal-cancel').onclick = () => modal.classList.remove('active');
+    document.getElementById('cart-modal-confirm').onclick = () => {
+      const tipo = document.getElementById('cart-global-tipo').value;
+      const registro = Storage.obtenerComidas(this.fecha);
+      if (!registro.comidas) registro.comidas = [];
+      this.cart.forEach(f => {
+        registro.comidas.push({ id: Date.now() + Math.random(), nombre: f.name, cal: f.cal, prot: f.prot, carb: f.carb, fat: f.fat, serving: f.serving, cantidad: f.qty || 1, tipo });
+      });
+      Storage.guardarComidas(this.fecha, registro);
+      modal.classList.remove('active');
+      overlay.classList.remove('active');
+      this.cart = [];
+      this._render();
+      this._toast(`✅ ${registro.comidas.length > 1 ? registro.comidas.length + ' alimentos' : 'Alimento'} agregado`);
+    };
   },
 
   _renderCustomForm() {

@@ -2492,3 +2492,46 @@ html.light .date-picker-hidden { color-scheme: light; }
   white-space: nowrap;
   cursor: default;
 }
+
+/* =====================================================
+   v2.5 - Multi-Select Cart Bar
+   ===================================================== */
+.cart-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1.5px solid rgba(124,58,237,0.35);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  position: sticky;
+  bottom: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10;
+}
+.cart-bar-info { display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;color:var(--text-primary);flex-wrap:wrap; }
+#cart-confirm:disabled { opacity:0.4;cursor:not-allowed; }
+.food-result { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid transparent;transition:background 0.15s,border-color 0.15s;cursor:pointer; }
+.food-result.in-cart { background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.35); }
+.food-result-check { display:flex;align-items:center;cursor:pointer;flex-shrink:0; }
+.food-result-check input[type="checkbox"] { display:none; }
+.food-cb-box { width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--bg-input);display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0; }
+.food-result-check input:checked + .food-cb-box { background:#7C3AED;border-color:#7C3AED; }
+.food-result-check input:checked + .food-cb-box::after { content:'';display:block;width:5px;height:9px;border:2.5px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px); }
+
+/* Exercise animations */
+@keyframes exSlideIn { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
+@keyframes exSlideInLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
+@keyframes exFadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.ex-slide-in { animation:exSlideIn 0.28s cubic-bezier(.4,0,.2,1) both; }
+.ex-slide-in-left { animation:exSlideInLeft 0.28s cubic-bezier(.4,0,.2,1) both; }
+.ex-fade-in { animation:exFadeIn 0.22s ease both; }
+
+/* Stats row - Cardio */
+.stats-row { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
+.stat-mini { background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;gap:4px; }
+.stat-mini .valor { font-weight:900;font-size:1.4rem;color:var(--brand-light);line-height:1; }
+.stat-mini .label { font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em; }

@@ -401,3 +401,15 @@ Sprint 6 (2-3 días):
 ---
 
 > **¿Aprobamos este plan y empezamos con el Sprint 1?**
+
+
+
+
+requerimientos aun no cumplidos:
+app.js muy pesado (741 líneas) — modularizar en: habitos.js, agua.js, fecha.js, progreso.js
+ Aplicar conversión en toda la app (dashboard, gym session, comidas, progreso)
+ Multi-selección de alimentos — carrito base iniciado (pendiente UI completa)
+  Animación entre ejercicios — slide/fade
+  Al entrar sin cuenta o local, botón volver al login desde cualquier vista ey en el casod e local hacere funcioanr ceoncetar a google desde más
+  Los icnos en la rutina de "Hoy" no se muestran nui a los cdreadoni apra seleccioanr uno nuevo,
+  
