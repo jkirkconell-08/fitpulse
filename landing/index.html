@@ -11,7 +11,6 @@
   <meta property="og:image" content="./assets/hero-mockup.png">
   <link rel="icon" href="./assets/icon-192.png">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
 </head>
 <body>
 
@@ -395,13 +394,11 @@
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js"></script>
 <script src="js/main.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.lucide) lucide.createIcons();
-    // Fallback if lucide loads after DOMContentLoaded
-    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 400);
-  });
+  // Initialize Lucide icons after everything is rendered
+  if (window.lucide) lucide.createIcons();
 </script>
 </body>
 </html>
