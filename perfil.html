@@ -6,6 +6,7 @@
   <meta name="description" content="FitPulse - Tu cuenta">
   <meta name="theme-color" content="#08080A">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23C8FF4D'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='%2308080A' font-family='Arial' font-weight='bold'>FP</text></svg>">
   <title>FitPulse - Tu cuenta</title>
@@ -15,12 +16,11 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body style="padding-bottom:40px;">
-  <header class="app-header">
-    <button class="header-icon-btn" onclick="history.length>1?history.back():location.href='index.html'"><i data-lucide="arrow-left" style="width:18px;height:18px;"></i></button>
-    <span class="font-display" style="font-size:1.1rem;">Tu cuenta</span>
-    <span style="width:42px;"></span>
-  </header>
   <main class="container">
+    <div class="page-back-row">
+      <button class="header-icon-btn" onclick="history.length>1?history.back():location.href='index.html'"><i data-lucide="arrow-left" style="width:18px;height:18px;"></i></button>
+      <span class="font-display" style="font-size:1.2rem;">Tu cuenta</span>
+    </div>
     <div class="config-card fade-in" style="margin-bottom:14px;" id="account-card"></div>
     <div class="config-card fade-in" style="margin-bottom:24px;" id="sync-card"></div>
 

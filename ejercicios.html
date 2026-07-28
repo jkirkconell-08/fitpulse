@@ -6,6 +6,7 @@
   <meta name="description" content="FitPulse - Entreno">
   <meta name="theme-color" content="#08080A">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23C8FF4D'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='%2308080A' font-family='Arial' font-weight='bold'>FP</text></svg>">
   <title>FitPulse - Entreno</title>
@@ -15,14 +16,13 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <header class="app-header">
-    <a href="index.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a>
-    <div class="header-actions">
-      <a href="perfil.html" id="user-avatar" class="user-avatar"></a>
-    </div>
-  </header>
   <main class="container">
-    <h1 class="page-title" style="font-family:var(--font-display);">Entreno</h1>
+    <div class="page-top-row">
+      <h1 class="page-title" style="margin:0;font-family:var(--font-display);">Entreno</h1>
+      <div class="page-top-actions">
+        <a href="perfil.html" id="user-avatar" class="user-avatar"></a>
+      </div>
+    </div>
 
     <div class="tabs">
       <button class="tab-pill" data-tab="fuerza">FUERZA</button>

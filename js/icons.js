@@ -84,7 +84,7 @@ const Icons = {
     const run = () => {
       if (window.lucide) {
         try {
-          lucide.createIcons({ attrs: { 'stroke-width': '2' }, rootElement: container });
+          lucide.createIcons({ attrs: { 'stroke-width': '2' } });
         } catch(e) { console.warn('Lucide init error:', e); }
       } else if (_retries > 0) {
         setTimeout(() => Icons.init(container, _retries - 1), 150);
@@ -95,5 +95,33 @@ const Icons = {
     } else {
       run();
     }
+  },
+
+  /* Vigila el DOM y renderiza cualquier <i data-lucide> nuevo automáticamente,
+     sin depender de que cada función de render recuerde llamar a Icons.init(). */
+  _watching: false,
+  watch() {
+    if (this._watching || typeof MutationObserver === 'undefined') return;
+    this._watching = true;
+    let pending = false;
+    const flush = () => { pending = false; this.init(); };
+    const observer = new MutationObserver((mutations) => {
+      if (pending) return;
+      const hasNewIcons = mutations.some(m =>
+        Array.from(m.addedNodes).some(n =>
+          n.nodeType === 1 && (n.matches?.('[data-lucide]') || n.querySelector?.('[data-lucide]'))
+        )
+      );
+      if (!hasNewIcons) return;
+      pending = true;
+      requestAnimationFrame(flush);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 };
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => Icons.watch());
+} else {
+  Icons.watch();
+}
