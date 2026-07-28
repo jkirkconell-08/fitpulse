@@ -104,6 +104,23 @@ const Routines = {
     return this.getAll().find(r => r.id === id) || null;
   },
 
+  /* Rutina "de hoy": respeta días asignados manualmente; si ninguna rutina
+     tiene días configurados, rota a la que lleva más tiempo sin hacerse. */
+  getTodayRoutine() {
+    const all = this.getAll();
+    if (all.length === 0) return null;
+    const weekday = new Date().getDay();
+    const byDay = all.find(r => (r.dias || []).includes(weekday));
+    if (byDay) return byDay;
+    const withLast = all.map(r => {
+      const last = this.getLastSession(r.id);
+      const ts = last ? (last.endedAt || last.startedAt || 0) : 0;
+      return { r, ts };
+    });
+    withLast.sort((a, b) => a.ts - b.ts);
+    return withLast[0].r;
+  },
+
   save(routine) {
     const all = this.getAll();
     const idx = all.findIndex(r => r.id === routine.id);
@@ -138,10 +155,33 @@ const Routines = {
     if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
   },
 
+  /* ---- Historial de sesiones (todas las rutinas) ---- */
+  renderHistorial() {
+    const container = document.getElementById('historial-sessions-container');
+    if (!container) return;
+    const sessions = this.getSessions();
+    if (sessions.length === 0) {
+      container.innerHTML = `<div class="empty-state"><p>Aún no hay sesiones registradas.</p></div>`;
+      return;
+    }
+    container.innerHTML = sessions.slice(0, 60).map(s => {
+      const d = new Date(s.endedAt || s.startedAt);
+      const vol = this.calcVolume(s);
+      const totalSets = (s.exercises || []).reduce((t, ex) => t + (ex.sets || []).length, 0);
+      return `
+        <div class="stat-tile" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:700;font-size:0.9rem;">${s.routineName}</div>
+            <div class="font-mono" style="font-size:11px;color:var(--text-muted);margin-top:2px;">${DIAS_SEMANA[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} · ${totalSets} series</div>
+          </div>
+          <div class="font-display" style="font-weight:800;font-size:20px;color:var(--lime);">${Math.round(vol).toLocaleString()}<span style="font-size:11px;color:var(--text-muted);"> kg</span></div>
+        </div>`;
+    }).join('');
+  },
+
   /* ---- UI ---- */
 
   init() {
-    if (typeof initDarkMode === 'function') initDarkMode();
     this._render();
   },
 
@@ -191,6 +231,7 @@ const Routines = {
   _routineCard(r) {
     const last = this.getLastSession(r.id);
     const vol  = last ? this.calcVolume(last) : 0;
+    const isToday = this.getTodayRoutine()?.id === r.id;
     const lastLabel = last
       ? (() => {
           const d = new Date(last.endedAt || last.startedAt);
@@ -201,6 +242,7 @@ const Routines = {
     return `
       <div class="workout-cat-card ${r.gradient}" data-id="${r.id}" style="cursor:pointer;">
         <div class="cat-bg"></div>
+        ${isToday ? `<span class="font-mono" style="position:absolute;top:10px;left:10px;z-index:3;background:var(--lime);color:#08080A;font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:999px;">HOY</span>` : ''}
         <div class="cat-body">
           <div class="cat-icon-wrap" style="margin-bottom:8px;opacity:0.9;">
             <i data-lucide="${r.icon}" style="width:28px;height:28px;"></i>
@@ -330,6 +372,8 @@ const Routines = {
     const totalEx  = s.exercises.length;
     const progress = Math.round((s.currentEx / totalEx) * 100);
     const targetMin = parseInt(ex.targetReps.split('-')[0]) || 10;
+    const lastSet = ex.sets[ex.sets.length - 1];
+    const weightStart = lastSet?.weightDone ?? (ex.weight || 0);
 
     overlay.classList.add('active');
     overlay.innerHTML = `
@@ -365,6 +409,15 @@ const Routines = {
         <div style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:20px;padding:20px;margin-bottom:20px;">
           <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);margin-bottom:14px;">Serie ${setNum} de ${totalSets}</div>
 
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
+            <button id="weight-dec" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.1rem;font-weight:700;cursor:pointer;font-family:inherit;">−</button>
+            <div style="text-align:center;">
+              <div id="weight-value" class="font-display" style="font-size:28px;font-weight:800;min-width:70px;">${weightStart}</div>
+              <div class="font-mono" style="font-size:9px;color:var(--text-muted);">LBS</div>
+            </div>
+            <button id="weight-inc" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.1rem;font-weight:700;cursor:pointer;font-family:inherit;">+</button>
+          </div>
+
           <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">¿Cuántas repeticiones hiciste?</div>
           <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
             <button id="reps-dec"
@@ -391,17 +444,21 @@ const Routines = {
     `;
 
     let repsVal = targetMin;
+    let weightVal = weightStart;
     const repsEl = document.getElementById('reps-value');
+    const weightEl = document.getElementById('weight-value');
 
     document.getElementById('reps-dec').onclick = () => { repsVal = Math.max(0, repsVal - 1); repsEl.textContent = repsVal; };
     document.getElementById('reps-inc').onclick = () => { repsVal++; repsEl.textContent = repsVal; };
+    document.getElementById('weight-dec').onclick = () => { weightVal = Math.max(0, weightVal - 2.5); weightEl.textContent = weightVal; };
+    document.getElementById('weight-inc').onclick = () => { weightVal += 2.5; weightEl.textContent = weightVal; };
 
     document.getElementById('sess-complete').onclick = () => {
-      ex.sets.push({ repsDone: repsVal, status: repsVal >= targetMin ? 'done' : 'partial' });
+      ex.sets.push({ repsDone: repsVal, weightDone: weightVal, status: repsVal >= targetMin ? 'done' : 'partial' });
       this._advanceSession(s);
     };
     document.getElementById('sess-skip').onclick = () => {
-      ex.sets.push({ repsDone: 0, status: 'skipped' });
+      ex.sets.push({ repsDone: 0, weightDone: weightVal, status: 'skipped' });
       this._advanceSession(s);
     };
     document.getElementById('sess-exit').onclick = () => {
@@ -478,18 +535,29 @@ const Routines = {
       ex.sets.forEach(st => { totalSets++; totalReps += st.repsDone || 0; });
     });
 
-    // Save session
-    const fecha = new Date().toISOString().slice(0, 10);
-    const sessions = JSON.parse(localStorage.getItem('fitpulse_gym_sessions') || '[]');
-    sessions.push({ fecha, routineName: s.routineName, duration, totalSets, totalReps, exercises: s.exercises });
-    localStorage.setItem('fitpulse_gym_sessions', JSON.stringify(sessions.slice(-90)));
-    if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
+    // Comparación vs. la sesión anterior de esta misma rutina (antes de guardar esta)
+    const volume = this.calcVolume({ exercises: s.exercises });
+    const last = this.getLastSession(s.routineId);
+    const lastVolume = last ? this.calcVolume(last) : 0;
+    const vsAnteriorPct = lastVolume > 0 ? Math.round(((volume - lastVolume) / lastVolume) * 100) : null;
+    const priorSessions = this.getSessions(s.routineId);
+    let isPR = false;
+    if (priorSessions.length > 0) {
+      const maxPriorVolume = Math.max(...priorSessions.map(sess => this.calcVolume(sess)));
+      isPR = volume > maxPriorVolume;
+    }
 
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:400px;text-align:center;">
         <div style="font-size:3.5rem;margin-bottom:10px;"><svg style="width:56px;height:56px;color:#FFD60A;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 006 6v0a6 6 0 006-6V2z"/></svg></div>
         <h2 style="font-size:1.5rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px;">¡Sesión completada!</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px;">${s.routineName}</p>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">${s.routineName}</p>
+
+        ${isPR
+          ? `<div class="font-mono" style="background:var(--lime-soft);border:1px solid var(--lime);color:var(--lime);font-size:12px;font-weight:700;padding:8px 14px;border-radius:12px;margin-bottom:16px;">🏆 NUEVO RÉCORD DE VOLUMEN</div>`
+          : vsAnteriorPct !== null
+            ? `<div class="font-mono" style="background:var(--bg-input);border:1px solid var(--border);color:${vsAnteriorPct >= 0 ? 'var(--lime)' : 'var(--danger)'};font-size:12px;font-weight:700;padding:8px 14px;border-radius:12px;margin-bottom:16px;">${vsAnteriorPct >= 0 ? '▲' : '▼'} ${Math.abs(vsAnteriorPct)}% vs. sesión anterior</div>`
+            : ''}
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;">
           <div style="background:var(--bg-input);border-radius:14px;padding:16px 8px;">
@@ -556,11 +624,13 @@ const Routines = {
       // Auto-mark gym checklist item for today
       try {
         const today = Storage.today();
-        const cl = Storage.obtenerChecklist(today) || { checked: [], pct: 0 };
-        if (!cl.checked.includes('gym')) {
-          cl.checked.push('gym');
-          cl.pct = Math.round((cl.checked.length / 10) * 100);
-          Storage.guardarChecklist(today, cl);
+        const dia = Storage.obtenerDia(today) || { fecha: today, checklist: {}, nota: '', cumplimiento: 0 };
+        if (dia.checklist.gym !== true) {
+          dia.checklist.gym = true;
+          const items = getItemsForDate(today);
+          const checked = items.filter(i => dia.checklist[i.id] === true).length;
+          dia.cumplimiento = Math.round((checked / items.length) * 100);
+          Storage.guardarDia(today, dia);
         }
       } catch(e) {}
       overlay.classList.remove('active');

@@ -187,25 +187,10 @@ const Comidas = {
   fecha: null,
 
   init() {
-    this._initDarkMode();
     this.fecha = Storage.today();
-    this.cart = []; // multi-select cart
     this._render();
-  },
-
-  _initDarkMode() {
-    const isLight = Storage.getDarkMode() === 'light';
-    if (isLight) { document.body.classList.add('light'); document.body.classList.remove('dark'); }
-    else { document.body.classList.remove('light'); document.body.classList.add('dark'); }
-    const toggle = document.getElementById('dark-toggle');
-    if (toggle) {
-      const fresh = toggle.cloneNode(true);
-      toggle.parentNode.replaceChild(fresh, toggle);
-      fresh.addEventListener('click', () => {
-        const nowLight = document.body.classList.toggle('light');
-        document.body.classList.toggle('dark', !nowLight);
-        Storage.setDarkMode(nowLight ? 'light' : 'dark');
-      });
+    if (new URLSearchParams(location.search).get('openSearch')) {
+      setTimeout(() => this._showFoodSearch(), 50);
     }
   },
 
@@ -288,17 +273,10 @@ const Comidas = {
         </div>
       </div>
 
-      <!-- Botones acción -->
-      <div style="display:flex;gap:8px;margin-bottom:20px;">
-        <button id="btn-add-food" class="btn btn-primary" style="flex:1;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Agregar
-        </button>
-        <button id="btn-historial-comidas" class="btn btn-secondary" style="flex:1;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Historial
-        </button>
-      </div>
+      <!-- Botón acción -->
+      <button id="btn-add-food" class="btn-lime" style="width:100%;height:56px;border:none;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;">
+        <i data-lucide="plus" style="width:19px;height:19px"></i>Agregar alimento
+      </button>
 
       <!-- Lista de comidas -->
       <div id="meals-list"></div>
@@ -316,7 +294,8 @@ const Comidas = {
     });
 
     document.getElementById('btn-add-food').addEventListener('click', () => this._showFoodSearch());
-    document.getElementById('btn-historial-comidas').addEventListener('click', () => this._showHistorialComidas());
+    const histBtn = document.getElementById('btn-historial-comidas');
+    if (histBtn) histBtn.onclick = () => this._showHistorialComidas();
   },
 
   _formatFecha(f) {
@@ -386,15 +365,7 @@ const Comidas = {
     if (!container) return;
 
     const items = registro.comidas || [];
-
-    if (items.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state fade-in">
-          <p>No has registrado comidas hoy.<br>Toca "+ Ingresar comida" para empezar.</p>
-        </div>
-      `;
-      return;
-    }
+    const currentType = this.fecha === Storage.today() ? this._autoMealType() : null;
 
     // Group by meal type
     const groups = {};
@@ -407,7 +378,17 @@ const Comidas = {
     let html = '';
     MEAL_TYPES.forEach(meal => {
       const mealItems = groups[meal.id];
-      if (mealItems.length === 0) return;
+      if (mealItems.length === 0) {
+        if (meal.id !== currentType) return;
+        html += `
+          <div class="meal-group fade-in" style="background:transparent;border:1px dashed var(--border-strong);box-shadow:none;">
+            <div class="meal-group-header" style="background:transparent;border-bottom:none;cursor:pointer;" data-add-meal="${meal.id}">
+              <span class="meal-group-icon"><i data-lucide="${meal.icon}" style="width:18px;height:18px;vertical-align:middle;color:var(--text-muted);"></i></span>
+              <span class="meal-group-name" style="color:var(--lime);">+ Añadir ${meal.name.toLowerCase()}</span>
+            </div>
+          </div>`;
+        return;
+      }
 
       const mealCal = Math.round(mealItems.reduce((s, i) => s + (i.cal * i.cantidad), 0));
 
@@ -423,7 +404,7 @@ const Comidas = {
 
       mealItems.forEach(item => {
         html += `
-          <div class="meal-item">
+          <div class="meal-item" data-id="${item.id}" style="cursor:pointer;">
             <div class="meal-item-info">
               <div class="meal-item-name">${item.nombre}</div>
               <div class="meal-item-detail">${item.cantidad > 1 ? item.cantidad + 'x ' : ''}${item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
@@ -436,16 +417,63 @@ const Comidas = {
       html += `</div></div>`;
     });
 
+    if (!html) {
+      html = `<div class="empty-state fade-in"><p>No hay comidas registradas este día.</p></div>`;
+    }
+
     container.innerHTML = html;
+
+    container.querySelectorAll('[data-add-meal]').forEach(row => {
+      row.addEventListener('click', () => this._showFoodSearch());
+    });
 
     // Delete buttons
     Icons.init();
     container.querySelectorAll('.meal-item-del').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = parseInt(e.target.dataset.id);
+        e.stopPropagation();
+        const id = parseFloat(e.target.closest('.meal-item-del').dataset.id);
         this._deleteFood(id);
       });
     });
+    container.querySelectorAll('.meal-item').forEach(row => {
+      row.addEventListener('click', () => this._showQtyEditor(parseFloat(row.dataset.id)));
+    });
+  },
+
+  _showQtyEditor(id) {
+    const registro = Storage.obtenerComidas(this.fecha);
+    const item = (registro.comidas || []).find(c => c.id === id);
+    if (!item) return;
+    const modal = document.getElementById('food-add-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+    modal.innerHTML = `
+      <div class="overlay-content" style="max-width:360px;">
+        <h2 style="font-size:1.05rem;margin-bottom:4px;">${item.nombre}</h2>
+        <p style="color:var(--text-muted);margin-bottom:16px;">${item.serving || ''} · ${item.cal} kcal / unidad</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
+          <button id="qty-dec" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">−</button>
+          <div id="qty-val" style="font-size:2rem;font-weight:800;min-width:60px;text-align:center;">${item.cantidad}</div>
+          <button id="qty-inc" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">+</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="qty-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
+          <button id="qty-save" class="btn btn-primary" style="flex:1;">Guardar</button>
+        </div>
+      </div>
+    `;
+    let qty = item.cantidad;
+    const valEl = document.getElementById('qty-val');
+    document.getElementById('qty-dec').onclick = () => { qty = Math.max(0.5, qty - 0.5); valEl.textContent = qty; };
+    document.getElementById('qty-inc').onclick = () => { qty = Math.min(10, qty + 0.5); valEl.textContent = qty; };
+    document.getElementById('qty-cancel').onclick = () => modal.classList.remove('active');
+    document.getElementById('qty-save').onclick = () => {
+      item.cantidad = qty;
+      Storage.guardarComidas(this.fecha, registro);
+      modal.classList.remove('active');
+      this._render();
+    };
   },
 
   _deleteFood(id) {
@@ -455,40 +483,42 @@ const Comidas = {
     this._render();
   },
 
-  /* ────── Food Search Overlay — Multi-Select Cart ────── */
+  /* ────── Buscar alimento — sheet a pantalla completa, "+" agrega al instante ────── */
+  _autoMealType() {
+    const h = new Date().getHours();
+    if (h < 9) return 'desayuno';
+    if (h < 11) return 'merienda_am';
+    if (h < 14) return 'almuerzo';
+    if (h < 17) return 'merienda_pm';
+    return 'cena';
+  },
+
+  _addFoodInstant(food) {
+    const registro = Storage.obtenerComidas(this.fecha);
+    if (!registro.comidas) registro.comidas = [];
+    registro.comidas.push({
+      id: Date.now() + Math.random(), nombre: food.name, cal: food.cal, prot: food.prot,
+      carb: food.carb, fat: food.fat, serving: food.serving, cantidad: 1, tipo: this._autoMealType()
+    });
+    Storage.guardarComidas(this.fecha, registro);
+    this._render();
+    this._toast(`${food.name} agregado`);
+  },
+
   _showFoodSearch() {
     const overlay = document.getElementById('food-overlay');
     if (!overlay) return;
-    overlay.classList.add('active');
-
-    this.cart = []; // reset cart each time
+    overlay.classList.add('active', 'full');
 
     const searchInput = document.getElementById('food-search-input');
     const resultsDiv  = document.getElementById('food-search-results');
     const catBtns     = document.getElementById('food-cat-btns');
     const closeBtn    = document.getElementById('food-overlay-close');
 
-    // Cart bar (floating)
-    let cartBar = overlay.querySelector('.cart-bar');
-    if (!cartBar) {
-      cartBar = document.createElement('div');
-      cartBar.className = 'cart-bar';
-      cartBar.innerHTML = `
-        <div class="cart-bar-info">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61H19a2 2 0 001.99-1.79l1.01-7.2H6"/></svg>
-          <span id="cart-count">0 seleccionados</span>
-          <span id="cart-kcal" style="color:var(--brand-light);font-weight:800;"></span>
-        </div>
-        <button id="cart-confirm" class="btn btn-primary" style="padding:8px 18px;font-size:0.85rem;">Agregar</button>
-      `;
-      overlay.querySelector('.overlay-content').appendChild(cartBar);
-    }
-    this._updateCartBar();
-
-    // Category buttons
     catBtns.innerHTML = `<button class="cat-btn active" data-cat="all">Todos</button>` +
+      `<button class="cat-btn" data-cat="mios"><i data-lucide="star" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>Mios</button>` +
       FOOD_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${c.id}"><i data-lucide="${c.icon}" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>${c.name}</button>`).join('') +
-      `<button class="cat-btn" data-cat="custom"><i data-lucide="pencil" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>Personalizado</button>`;
+      `<button class="cat-btn" data-cat="custom"><i data-lucide="pencil" style="width:15px;height:15px;vertical-align:middle;margin-right:4px;"></i>Crear alimento</button>`;
 
     let currentCat = 'all';
 
@@ -496,63 +526,48 @@ const Comidas = {
       if (cat === 'custom') {
         resultsDiv.innerHTML = this._renderCustomForm();
         this._bindCustomForm(overlay);
-        cartBar.style.display = 'none';
         return;
       }
-      cartBar.style.display = '';
 
-      let foods = FOOD_DB;
-      if (cat !== 'all') foods = foods.filter(f => f.cat === cat);
+      let foods = cat === 'mios' ? Storage.getCustomFoods() : FOOD_DB;
+      if (cat !== 'all' && cat !== 'mios') foods = foods.filter(f => f.cat === cat);
       if (filter.trim()) {
         const q = filter.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         foods = foods.filter(f => f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q));
       }
 
       if (foods.length === 0) {
-        resultsDiv.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No se encontraron alimentos. Usa "Personalizado" para agregar uno nuevo.</p>';
+        resultsDiv.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:20px;">${cat === 'mios' ? 'Aun no tienes alimentos guardados. Usa "Crear alimento".' : 'No se encontraron alimentos. Usa "Crear alimento" para agregar uno nuevo.'}</p>`;
         return;
       }
 
-      resultsDiv.innerHTML = foods.map(f => {
-        const inCart = this.cart.some(c => c.id === f.id);
-        return `
-          <div class="food-result${inCart ? ' in-cart' : ''}" data-food-id="${f.id}">
-            <label class="food-result-check">
-              <input type="checkbox" class="food-cb" data-food-id="${f.id}" ${inCart ? 'checked' : ''}>
-              <span class="food-cb-box"></span>
-            </label>
-            <div class="food-result-info">
-              <div class="food-result-name">${f.name}</div>
-              <div class="food-result-detail">${f.serving} · ${f.cal} kcal · P:${f.prot}g C:${f.carb}g G:${f.fat}g</div>
-            </div>
-          </div>`;
-      }).join('');
+      resultsDiv.innerHTML = foods.map(f => `
+        <div class="food-result" data-food-id="${f.id}">
+          <div class="food-result-info">
+            <div class="food-result-name">${f.name}${f.cat === 'custom' ? ' <span class="font-mono" style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(167,139,250,.16);color:var(--brand-light);">MIO</span>' : ''}</div>
+            <div class="food-result-detail">${f.serving} . ${f.cal} kcal . P:${f.prot}g C:${f.carb}g G:${f.fat}g</div>
+          </div>
+          <button class="food-result-add" data-food-id="${f.id}">+</button>
+        </div>`).join('');
 
-      // Wire checkboxes
-      resultsDiv.querySelectorAll('.food-cb').forEach(cb => {
-        cb.addEventListener('change', () => {
-          const id = parseInt(cb.dataset.foodId);
-          const food = FOOD_DB.find(f => f.id === id);
+      resultsDiv.querySelectorAll('.food-result-add').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.foodId;
+          const food = foods.find(f => String(f.id) === String(id));
           if (!food) return;
-          if (cb.checked) {
-            if (!this.cart.some(c => c.id === id)) this.cart.push({ ...food, qty: 1 });
-            cb.closest('.food-result').classList.add('in-cart');
-          } else {
-            this.cart = this.cart.filter(c => c.id !== id);
-            cb.closest('.food-result').classList.remove('in-cart');
-          }
-          this._updateCartBar();
+          this._addFoodInstant(food);
+          btn.textContent = 'OK';
+          btn.disabled = true;
+          setTimeout(() => { btn.textContent = '+'; btn.disabled = false; }, 900);
         });
       });
-
-      Icons.init(resultsDiv);
     };
 
     renderResults();
 
     searchInput.value = '';
     searchInput.focus();
-    searchInput.addEventListener('input', () => renderResults(searchInput.value, currentCat));
+    searchInput.oninput = () => renderResults(searchInput.value, currentCat);
 
     catBtns.querySelectorAll('.cat-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -565,127 +580,7 @@ const Comidas = {
 
     Icons.init(catBtns);
 
-    document.getElementById('cart-confirm')?.addEventListener('click', () => {
-      if (this.cart.length === 0) { this._toast('Selecciona al menos un alimento', 'warning'); return; }
-      this._showCartConfirm(overlay);
-    });
-
-    closeBtn.onclick = () => { overlay.classList.remove('active'); this.cart = []; };
-  },
-
-  _updateCartBar() {
-    const count = this.cart.length;
-    const kcal  = this.cart.reduce((t, f) => t + (f.cal * (f.qty || 1)), 0);
-    const el    = document.getElementById('cart-count');
-    const ek    = document.getElementById('cart-kcal');
-    const btn   = document.getElementById('cart-confirm');
-    if (el) el.textContent = count === 0 ? 'Ninguno seleccionado' : `${count} seleccionado${count > 1 ? 's' : ''}`;
-    if (ek) ek.textContent = count > 0 ? `· ${Math.round(kcal)} kcal` : '';
-    if (btn) btn.disabled = count === 0;
-  },
-
-  /* Cart confirm: set qty + meal type for each selected item */
-  _showCartConfirm(overlay) {
-    const modal = document.getElementById('food-add-modal');
-    if (!modal) return;
-    modal.classList.add('active');
-
-    const now = new Date();
-    const h   = now.getHours();
-    let autoType = 'cena';
-    if (h < 9) autoType = 'desayuno';
-    else if (h < 11) autoType = 'merienda_am';
-    else if (h < 14) autoType = 'almuerzo';
-    else if (h < 17) autoType = 'merienda_pm';
-
-    modal.innerHTML = `
-      <div class="overlay-content" style="max-width:420px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <h2 style="font-size:1.05rem;font-weight:800;">Confirmar selección</h2>
-          <button id="cart-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">✕</button>
-        </div>
-
-        <!-- Global meal type -->
-        <div style="margin-bottom:14px;">
-          <label style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Asignar a comida</label>
-          <select id="cart-global-tipo" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
-            ${MEAL_TYPES.map(m => `<option value="${m.id}" ${m.id === autoType ? 'selected' : ''}>${m.name}</option>`).join('')}
-          </select>
-        </div>
-
-        <!-- Items list -->
-        <div id="cart-items-list" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:14px;">
-          ${this.cart.map((f, i) => `
-            <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border-radius:10px;padding:10px 12px;">
-              <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);">${f.serving} · ${f.cal} kcal</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                <button class="cart-qty-btn minus" data-idx="${i}" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-                <input type="number" class="cart-qty-input" data-idx="${i}" value="${f.qty || 1}" min="0.5" step="0.5"
-                  style="width:44px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
-                <button class="cart-qty-btn plus" data-idx="${i}" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div id="cart-total-preview" style="text-align:center;font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;"></div>
-
-        <div style="display:flex;gap:10px;">
-          <button id="cart-modal-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
-          <button id="cart-modal-confirm" class="btn btn-primary" style="flex:2;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
-            Agregar ${this.cart.length} alimento${this.cart.length > 1 ? 's' : ''}
-          </button>
-        </div>
-      </div>
-    `;
-
-    const updateTotal = () => {
-      const total = this.cart.reduce((t, f) => t + (f.cal * (f.qty || 1)), 0);
-      const el = document.getElementById('cart-total-preview');
-      if (el) el.textContent = `Total: ${Math.round(total)} kcal`;
-    };
-    updateTotal();
-
-    // Qty buttons
-    modal.querySelectorAll('.cart-qty-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx);
-        const input = modal.querySelector(`.cart-qty-input[data-idx="${idx}"]`);
-        let val = parseFloat(input.value) || 1;
-        if (btn.classList.contains('plus'))  val = Math.min(10, val + 0.5);
-        if (btn.classList.contains('minus')) val = Math.max(0.5, val - 0.5);
-        input.value = val; this.cart[idx].qty = val;
-        updateTotal(); this._updateCartBar();
-      });
-    });
-    modal.querySelectorAll('.cart-qty-input').forEach(inp => {
-      inp.addEventListener('change', () => {
-        const idx = parseInt(inp.dataset.idx);
-        this.cart[idx].qty = parseFloat(inp.value) || 1;
-        updateTotal(); this._updateCartBar();
-      });
-    });
-
-    document.getElementById('cart-modal-close').onclick  = () => modal.classList.remove('active');
-    document.getElementById('cart-modal-cancel').onclick = () => modal.classList.remove('active');
-    document.getElementById('cart-modal-confirm').onclick = () => {
-      const tipo = document.getElementById('cart-global-tipo').value;
-      const registro = Storage.obtenerComidas(this.fecha);
-      if (!registro.comidas) registro.comidas = [];
-      this.cart.forEach(f => {
-        registro.comidas.push({ id: Date.now() + Math.random(), nombre: f.name, cal: f.cal, prot: f.prot, carb: f.carb, fat: f.fat, serving: f.serving, cantidad: f.qty || 1, tipo });
-      });
-      Storage.guardarComidas(this.fecha, registro);
-      modal.classList.remove('active');
-      overlay.classList.remove('active');
-      this.cart = [];
-      this._render();
-      this._toast(`✅ ${registro.comidas.length > 1 ? registro.comidas.length + ' alimentos' : 'Alimento'} agregado`);
-    };
+    closeBtn.onclick = () => overlay.classList.remove('active', 'full');
   },
 
   _renderCustomForm() {
@@ -724,6 +619,8 @@ const Comidas = {
 
       if (!name) return;
 
+      Storage.saveCustomFood({ name, cal, prot, carb, fat, serving });
+
       const registro = Storage.obtenerComidas(this.fecha);
       if (!registro.comidas) registro.comidas = [];
       registro.comidas.push({
@@ -731,83 +628,10 @@ const Comidas = {
         nombre: name, cal, prot, carb, fat, serving, cantidad: 1, tipo
       });
       Storage.guardarComidas(this.fecha, registro);
-      overlay.classList.remove('active');
+      overlay.classList.remove('active', 'full');
       this._render();
-      this._toast(`${name} agregado`);
+      this._toast(`${name} agregado y guardado en Míos`);
     });
-  },
-
-  _showAddModal(food, overlay) {
-    const modal = document.getElementById('food-add-modal');
-    if (!modal) return;
-    modal.classList.add('active');
-
-    modal.innerHTML = `
-      <div class="overlay-content" style="max-width:380px;">
-        <h2 style="font-size:1.1rem;margin-bottom:4px;">${food.name}</h2>
-        <p style="margin-bottom:16px;">${food.serving} · ${food.cal} kcal</p>
-        <div class="config-row">
-          <label>Cantidad (porciones)</label>
-          <input type="number" id="add-qty" value="1" min="0.5" step="0.5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);font-size:1.1rem;text-align:center;">
-        </div>
-        <div class="config-row">
-          <label>Tipo de comida</label>
-          <select id="add-tipo" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text-primary);font-size:0.9rem;">
-            ${MEAL_TYPES.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
-          </select>
-        </div>
-        <div id="add-preview" style="text-align:center;color:var(--text-secondary);font-size:0.85rem;margin-bottom:12px;">
-          ${food.cal} kcal · P:${food.prot}g C:${food.carb}g G:${food.fat}g
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button id="add-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
-          <button id="add-confirm" class="btn btn-primary" style="flex:1;">Agregar</button>
-        </div>
-      </div>
-    `;
-
-    // Auto-select meal type based on current time
-    const now = new Date();
-    const h = now.getHours();
-    let autoType = 'cena';
-    if (h < 9) autoType = 'desayuno';
-    else if (h < 11) autoType = 'merienda_am';
-    else if (h < 14) autoType = 'almuerzo';
-    else if (h < 17) autoType = 'merienda_pm';
-    document.getElementById('add-tipo').value = autoType;
-
-    const qtyInput = document.getElementById('add-qty');
-    qtyInput.addEventListener('input', () => {
-      const q = parseFloat(qtyInput.value) || 1;
-      document.getElementById('add-preview').textContent =
-        `${Math.round(food.cal * q)} kcal · P:${(food.prot * q).toFixed(1)}g C:${(food.carb * q).toFixed(1)}g G:${(food.fat * q).toFixed(1)}g`;
-    });
-
-    document.getElementById('add-cancel').onclick = () => modal.classList.remove('active');
-    document.getElementById('add-confirm').onclick = () => {
-      const qty = parseFloat(qtyInput.value) || 1;
-      const tipo = document.getElementById('add-tipo').value;
-
-      const registro = Storage.obtenerComidas(this.fecha);
-      if (!registro.comidas) registro.comidas = [];
-      registro.comidas.push({
-        id: Date.now(),
-        nombre: food.name,
-        cal: food.cal,
-        prot: food.prot,
-        carb: food.carb,
-        fat: food.fat,
-        serving: food.serving,
-        cantidad: qty,
-        tipo
-      });
-      Storage.guardarComidas(this.fecha, registro);
-
-      modal.classList.remove('active');
-      overlay.classList.remove('active');
-      this._render();
-      this._toast(`${food.name} agregado (${Math.round(food.cal * qty)} kcal)`);
-    };
   },
 
   _toast(msg) {

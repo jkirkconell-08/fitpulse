@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="FitPulse - Tu cuenta">
+  <meta name="theme-color" content="#08080A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23C8FF4D'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='%2308080A' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <title>FitPulse - Tu cuenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body style="padding-bottom:40px;">
+  <header class="app-header">
+    <button class="header-icon-btn" onclick="history.length>1?history.back():location.href='index.html'"><i data-lucide="arrow-left" style="width:18px;height:18px;"></i></button>
+    <span class="font-display" style="font-size:1.1rem;">Tu cuenta</span>
+    <span style="width:42px;"></span>
+  </header>
+  <main class="container">
+    <div class="config-card fade-in" style="margin-bottom:14px;" id="account-card"></div>
+    <div class="config-card fade-in" style="margin-bottom:24px;" id="sync-card"></div>
+
+    <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">Plan</div>
+    <div class="config-card fade-in" style="margin-bottom:24px;" id="plan-card"></div>
+
+    <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;">App</div>
+    <div class="config-card fade-in" style="margin-bottom:24px;" id="app-card"></div>
+
+    <div style="text-align:center;font-size:0.72rem;color:var(--text-dim);">FitPulse v2.0</div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
+  <script src="js/icons.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/perfil.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await Auth.init();
+      const ok = await Auth.requireAuth();
+      if (!ok) return;
+      Perfil.init();
+      Icons.init(document.body);
+    });
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
+  </script>
+</body>
+</html>

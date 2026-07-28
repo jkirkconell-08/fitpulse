@@ -1,37 +1,80 @@
-﻿<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var t=localStorage.getItem("fitpulse_dark")||"dark";document.documentElement.className=t==="light"?"light":"dark"}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="FitPulse - Progreso de peso">
-  <meta name="theme-color" content="#0D0D0D">
+  <meta name="description" content="FitPulse - Progreso">
+  <meta name="theme-color" content="#08080A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%237C3AED'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
-  <title>FitPulse - Peso</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23C8FF4D'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='%2308080A' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <title>FitPulse - Progreso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="app-header"><a href="dashboard.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a><div class="header-actions"><div id="user-avatar" class="user-avatar"></div><div id="dark-toggle" class="dark-toggle"><span class="toggle-icon icon-sun"><i data-lucide="sun" style="width:16px;height:16px;"></i></span><span class="toggle-icon icon-moon"><i data-lucide="moon" style="width:16px;height:16px;"></i></span></div></div></header>
-  <main class="container"><h1 class="page-title">Progreso de Peso</h1><p class="page-subtitle">Registro semanal y avance hacia tu meta</p><div id="progreso-stats" class="progreso-stats"></div><div id="progress-bar" class="progress-bar-container"></div><div id="hito-msg"></div><div id="chart-wrapper" class="chart-wrapper"><canvas id="peso-chart"></canvas></div><div class="peso-form-card"><h3>Registrar peso</h3><div class="form-row"><div class="form-group"><label for="peso-input">Peso (kg)</label><input type="number" id="peso-input" step="0.1" placeholder="Ej: 105.3" inputmode="decimal"></div><button id="btn-registrar-peso" class="btn btn-primary">Registrar</button></div><div id="peso-dia-msg" class="peso-dia-msg"></div></div><div id="peso-tabla"></div></main>
+  <header class="app-header">
+    <a href="index.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a>
+    <div class="header-actions">
+      <a href="perfil.html" id="user-avatar" class="user-avatar"></a>
+    </div>
+  </header>
+  <main class="container">
+    <h1 class="page-title" style="font-family:var(--font-display);">Progreso</h1>
+
+    <div class="tabs">
+      <button class="tab-pill" data-tab="peso">PESO</button>
+      <button class="tab-pill" data-tab="medidas">MEDIDAS</button>
+      <button class="tab-pill" data-tab="semana">SEMANA</button>
+    </div>
+
+    <div class="tab-pane" id="tab-peso">
+      <div id="peso-tab-container"></div>
+    </div>
+    <div class="tab-pane" id="tab-medidas">
+      <div id="medidas-foto-container"></div>
+      <div id="medidas-container"></div>
+    </div>
+    <div class="tab-pane" id="tab-semana">
+      <div id="semana-resumen-container"></div>
+      <div id="historial-container"></div>
+    </div>
+  </main>
+  <div id="edit-overlay" class="overlay"></div>
+  <div id="nota-overlay" class="overlay"></div>
+
+  <div class="bottom-nav-scrim"></div>
   <nav class="bottom-nav">
-    <a href="dashboard.html" class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Inicio</span></a>
-    <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Hoy</span></a>
-    <a href="comidas.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg><span>Comidas</span></a>
-    <a href="ejercicios.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg><span>Gym</span></a>
-    <a href="menu.html" class="nav-item active"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg><span>Más</span></a>
+    <a href="index.html" class="nav-item"><i data-lucide="flame" style="width:21px;height:21px"></i><span>HOY</span></a>
+    <a href="ejercicios.html" class="nav-item"><i data-lucide="dumbbell" style="width:21px;height:21px"></i><span>ENTRENO</span></a>
+    <div class="nav-fab-wrap"><button class="nav-fab" id="nav-fab">+</button></div>
+    <a href="progreso.html" class="nav-item active"><i data-lucide="trending-up" style="width:21px;height:21px"></i><span>PROGRESO</span></a>
+    <a href="comidas.html" class="nav-item"><i data-lucide="utensils" style="width:21px;height:21px"></i><span>COMIDAS</span></a>
   </nav>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
   <script src="js/icons.js"></script>
-  <script src="js/firebase-config.js"></script><script src="js/storage.js"></script><script src="js/auth.js"></script><script src="js/cloud-sync.js"></script><script src="js/charts.js"></script><script src="js/app.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/photo-store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/medidas.js"></script>
+  <script src="js/progreso.js"></script>
+  <script src="js/quick-add.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       await Auth.init();
       const ok = await Auth.requireAuth();
       if (!ok) return;
-      initDarkMode(); Auth._updateUI(); Progreso.init();
+      Auth._updateUI();
+      ProgresoPage.init();
+      Tabs.init('.tab-pill', 'tab-', 'peso');
+      Icons.init(document.body);
+      QuickAdd.init();
     });
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
   </script>

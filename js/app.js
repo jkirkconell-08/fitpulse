@@ -75,7 +75,9 @@ const DemoData = {
       const pct = 60 + Math.floor(Math.random() * 40);
       const items = getDailyItems();
       const checked = items.filter(() => Math.random() < pct / 100).map(it => it.id);
-      Storage.guardarChecklist(f, { checked, pct });
+      const checklist = {};
+      checked.forEach(id => checklist[id] = true);
+      Storage.guardarDia(f, { fecha: f, checklist, nota: '', cumplimiento: pct });
       Storage.guardarAgua(f, { vasos: Math.floor(4 + Math.random() * 5), meta: 8 });
       Storage.guardarPeso(f, parseFloat((parseFloat(peso) - i * 0.15).toFixed(1)));
     }
@@ -136,30 +138,25 @@ function showLinkAccountBanner() {
   else container.prepend(banner);
 }
 
-/* ─── Helper: dark mode init (shared) ─── */
-function initDarkMode() {
-  // Default is dark. Light mode = body.light class
-  const isLight = Storage.getDarkMode() === 'light';
-  if (isLight) {
-    document.body.classList.add('light');
-    document.body.classList.remove('dark');
-  } else {
-    document.body.classList.remove('light');
-    document.body.classList.add('dark');
-  }
-
-  const toggle = document.getElementById('dark-toggle');
-  if (toggle) {
-    // Remove any previously attached listeners by cloning
-    const fresh = toggle.cloneNode(true);
-    toggle.parentNode.replaceChild(fresh, toggle);
-    fresh.addEventListener('click', () => {
-      const nowLight = document.body.classList.toggle('light');
-      document.body.classList.toggle('dark', !nowLight);
-      Storage.setDarkMode(nowLight ? 'light' : 'dark');
+/* ─── Tabs: router local basado en location.hash, usado por ejercicios.html y progreso.html ─── */
+const Tabs = {
+  init(pillsSelector, panesPrefix, defaultTab, onShow) {
+    const pills = document.querySelectorAll(pillsSelector);
+    const show = (id) => {
+      pills.forEach(p => p.classList.toggle('active', p.dataset.tab === id));
+      document.querySelectorAll(`[id^="${panesPrefix}"]`).forEach(pane => {
+        pane.classList.toggle('active', pane.id === panesPrefix + id);
+      });
+      if (onShow) onShow(id);
+    };
+    pills.forEach(p => {
+      p.addEventListener('click', () => { location.hash = '#' + p.dataset.tab; show(p.dataset.tab); });
     });
+    const raw = (location.hash || '').replace('#', '').split('?')[0];
+    const initial = [...pills].some(p => p.dataset.tab === raw) ? raw : defaultTab;
+    show(initial);
   }
-}
+};
 
 /* ─── Helper: toast ─── */
 function showToast(msg, type = 'success') {
@@ -176,18 +173,18 @@ function showToast(msg, type = 'success') {
 const App = {
   fecha: null,
   config: null,
-  overlayActive: false,
+  cierreDismissed: false,
 
   init() {
     this.fecha = Storage.today();
     this.config = Storage.obtenerConfig();
-    initDarkMode();
     this._renderFecha();
-    this._renderStats();
+    this._renderHeroRing();
+    this._renderTodayWorkout();
     this._renderWater();
     this._renderChecklist();
     this._renderNota();
-    this._startOverlayCheck();
+    this._startCierreCheck();
     Notificaciones.init();
   },
 
@@ -195,33 +192,89 @@ const App = {
     const el = document.getElementById('fecha-display');
     if (!el) return;
     const d = new Date();
-    const racha = Storage.calcularRacha();
+    const nombre = (this.config && this.config.nombre) || 'Atleta';
     el.innerHTML = `
-      <div class="fecha-dia">
-        <span class="num">${d.getDate()}</span>
-        <span class="dia">${DIAS_CORTO[d.getDay()]}</span>
-      </div>
-      <div class="fecha-info">
-        <div class="mes-year">${MESES[d.getMonth()]} ${d.getFullYear()}</div>
-        ${racha > 0 ? `<div class="racha" style="display:flex;align-items:center;gap:5px;"><i data-lucide="flame" style="width:15px;height:15px;color:#FF6B35;"></i> ${racha} día${racha > 1 ? 's' : ''} de racha</div>` : ''}
+      <div>
+        <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">${DIAS_SEMANA[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()}</div>
+        <div class="font-display" style="font-size:32px;line-height:1.05;margin-top:2px;">Hola, ${nombre}</div>
       </div>
     `;
-    if (window.lucide) lucide.createIcons();
   },
 
-  _renderStats() {
-    const el = document.getElementById('stats-row');
+  _renderHeroRing() {
+    const el = document.getElementById('hero-ring-container');
     if (!el) return;
     const dia = Storage.obtenerDia(this.fecha);
-    const cumplimiento = dia ? dia.cumplimiento : 0;
-    const racha = Storage.calcularRacha();
     const items = getItemsForDate(this.fecha);
     const checked = dia ? Object.values(dia.checklist || {}).filter(v => v === true).length : 0;
+    const habitPct = items.length ? Math.round((checked / items.length) * 100) : 0;
+
+    const comidas = Storage.obtenerComidas(this.fecha);
+    const kcal = Math.round((comidas.comidas || []).reduce((s, c) => s + (c.cal * (c.cantidad || 1)), 0));
+    const metaCal = this.config.metaCal || 2200;
+    const kcalPct = Math.min(100, Math.round((kcal / metaCal) * 100));
+
+    const agua = Storage.obtenerAgua(this.fecha);
+    const aguaPct = Math.min(100, Math.round((agua.vasos / agua.meta) * 100));
+
+    const overallPct = Math.round((habitPct + kcalPct + aguaPct) / 3);
+    const racha = Storage.calcularRacha();
+
+    const R1 = 68, R2 = 54, R3 = 42;
+    const C1 = 2 * Math.PI * R1, C2 = 2 * Math.PI * R2, C3 = 2 * Math.PI * R3;
+    const off = (c, pct) => c - (c * Math.min(pct, 100) / 100);
+
     el.innerHTML = `
-      <div class="stat-mini"><span class="valor">${cumplimiento}%</span><span class="label">Hoy</span></div>
-      <div class="stat-mini"><span class="valor">${checked}/${items.length}</span><span class="label">Items</span></div>
-      <div class="stat-mini"><span class="valor">${racha}</span><span class="label">Racha</span></div>
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div class="hero-ring-wrap">
+          <svg viewBox="0 0 146 146">
+            <circle cx="73" cy="73" r="${R1}" fill="none" stroke="var(--border)" stroke-width="10"></circle>
+            <circle cx="73" cy="73" r="${R1}" fill="none" stroke="var(--lime)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C1}" stroke-dashoffset="${off(C1, habitPct)}" style="animation:fp-ring 1.1s cubic-bezier(.22,1,.36,1) both"></circle>
+            <circle cx="73" cy="73" r="${R2}" fill="none" stroke="var(--border)" stroke-width="8"></circle>
+            <circle cx="73" cy="73" r="${R2}" fill="none" stroke="var(--brand-light)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C2}" stroke-dashoffset="${off(C2, kcalPct)}" style="animation:fp-ring 1.3s cubic-bezier(.22,1,.36,1) both"></circle>
+            <circle cx="73" cy="73" r="${R3}" fill="none" stroke="var(--border)" stroke-width="7"></circle>
+            <circle cx="73" cy="73" r="${R3}" fill="none" stroke="var(--cyan)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C3}" stroke-dashoffset="${off(C3, aguaPct)}" style="animation:fp-ring2 1.5s cubic-bezier(.22,1,.36,1) both"></circle>
+          </svg>
+          <div class="hero-ring-center">
+            <span class="hero-ring-pct">${overallPct}<span>%</span></span>
+            <span class="hero-ring-sub">DEL DÍA</span>
+          </div>
+        </div>
+        <div class="hero-legend">
+          <div class="hero-legend-row"><span class="hero-legend-dot" style="background:var(--lime);"></span><div><div class="hero-legend-label font-mono">HÁBITOS</div><div class="hero-legend-val">${checked} / ${items.length}</div></div></div>
+          <div class="hero-legend-row"><span class="hero-legend-dot" style="background:var(--brand-light);"></span><div><div class="hero-legend-label font-mono">KCAL</div><div class="hero-legend-val">${kcal}</div></div></div>
+          <div class="hero-legend-row"><span class="hero-legend-dot" style="background:var(--cyan);"></span><div><div class="hero-legend-label font-mono">AGUA</div><div class="hero-legend-val">${agua.vasos} / ${agua.meta}</div></div></div>
+        </div>
+      </div>
+      ${racha > 0 ? `
+      <div class="hero-streak-row">
+        <span class="hero-streak-dot"></span>
+        <span class="hero-streak-label">RACHA ${racha} DÍA${racha > 1 ? 'S' : ''}</span>
+      </div>` : ''}
     `;
+  },
+
+  _renderTodayWorkout() {
+    const el = document.getElementById('today-workout-container');
+    if (!el) return;
+    if (typeof Routines === 'undefined') { el.innerHTML = ''; return; }
+    const rutinaHoy = Routines.getTodayRoutine();
+    if (!rutinaHoy) { el.innerHTML = ''; return; }
+    const last = Routines.getLastSession ? Routines.getLastSession(rutinaHoy.id) : null;
+    const vol = last ? Routines.calcVolume(last) : 0;
+    el.innerHTML = `
+      <div class="hero-card" style="background:var(--bg-card);border-color:var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Toca hoy</span>
+        </div>
+        <div class="font-display" style="font-size:30px;line-height:1.05;margin-bottom:6px;">${rutinaHoy.name}</div>
+        <div class="font-mono" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">${(rutinaHoy.exercises || []).length} ejercicios${vol ? ` · último ${vol.toLocaleString()} kg` : ''}</div>
+        <a href="ejercicios.html#fuerza" class="btn-lime glow" style="width:100%;height:56px;border-radius:16px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;">
+          <i data-lucide="play" style="width:19px;height:19px"></i>Empezar
+        </a>
+      </div>
+    `;
+    Icons.init(el);
   },
 
   _renderWater() {
@@ -500,38 +553,73 @@ const App = {
     if (el) { el.classList.add('visible'); setTimeout(() => el.classList.remove('visible'), 2000); }
   },
 
-  _startOverlayCheck() {
-    setInterval(() => this._checkOverlay(), 30000);
-    this._checkOverlay();
+  _startCierreCheck() {
+    this._checkCierre();
+    setInterval(() => this._checkCierre(), 5 * 60000);
   },
 
-  _checkOverlay() {
+  _checkCierre() {
+    if (this.cierreDismissed) return;
     const now = new Date();
     if (now.getHours() < 21) return;
     const dia = Storage.obtenerDia(this.fecha);
-    if (dia && (dia.nota || '').trim().length > 0) return;
-    this._showOverlay();
+    if (dia && (dia.nota || '').trim().length > 0 && dia.mood) return;
+    this._showCierreSheet();
   },
 
-  _showOverlay() {
-    if (this.overlayActive) return;
-    this.overlayActive = true;
-    const overlay = document.getElementById('nota-overlay');
-    if (!overlay) return;
-    overlay.classList.add('active');
-    const btn = document.getElementById('overlay-guardar');
-    if (btn) {
-      btn.onclick = () => {
-        const texto = document.getElementById('overlay-nota').value.trim();
-        if (!texto) { document.getElementById('overlay-nota').style.borderColor = 'var(--danger)'; return; }
-        this._guardarNota(texto);
-        overlay.classList.remove('active');
-        this.overlayActive = false;
-        const mainNota = document.getElementById('nota-textarea');
-        if (mainNota) mainNota.value = texto;
-      };
-    }
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.overlayActive) { e.preventDefault(); e.stopPropagation(); } });
+  _showCierreSheet() {
+    const backdrop = document.getElementById('cierre-backdrop');
+    if (!backdrop) return;
+    backdrop.classList.add('active');
+
+    const dia = Storage.obtenerDia(this.fecha) || { fecha: this.fecha, checklist: {}, nota: '', cumplimiento: 0 };
+    const items = getItemsForDate(this.fecha);
+    const checked = Object.values(dia.checklist || {}).filter(v => v === true).length;
+    const entrenoHecho = dia.checklist && dia.checklist.gym === true;
+    let mood = dia.mood || null;
+
+    backdrop.innerHTML = `
+      <div class="bottom-sheet active" id="cierre-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <h2 style="font-size:22px;margin-bottom:4px;">Cierre del día</h2>
+        <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Completaste ${checked}/${items.length} hábitos${entrenoHecho ? ' y entrenaste' : ''}.</p>
+        <div class="mood-chips" id="mood-chips">
+          <div class="mood-chip" data-mood="flojo">😴<span class="mood-label">FLOJO</span></div>
+          <div class="mood-chip" data-mood="bien">🙂<span class="mood-label">BIEN</span></div>
+          <div class="mood-chip" data-mood="fuerte">💪<span class="mood-label">FUERTE</span></div>
+        </div>
+        <textarea id="cierre-nota" class="nota-textarea" placeholder="¿Algo que anotar? (opcional)">${dia.nota || ''}</textarea>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button id="cierre-luego" class="btn btn-secondary" style="flex:1;">Luego</button>
+          <button id="cierre-guardar" class="btn-lime" style="flex:2;height:52px;border-radius:14px;border:none;cursor:pointer;">Guardar y cerrar</button>
+        </div>
+      </div>
+    `;
+    backdrop.onclick = () => { this.cierreDismissed = true; backdrop.classList.remove('active'); };
+    backdrop.querySelectorAll('.mood-chip').forEach(chip => {
+      if (chip.dataset.mood === mood) chip.classList.add('selected');
+      chip.addEventListener('click', () => {
+        backdrop.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        mood = chip.dataset.mood;
+      });
+    });
+    document.getElementById('cierre-luego').addEventListener('click', () => {
+      this.cierreDismissed = true;
+      backdrop.classList.remove('active');
+    });
+    document.getElementById('cierre-guardar').addEventListener('click', () => {
+      const texto = document.getElementById('cierre-nota').value.trim();
+      const d = Storage.obtenerDia(this.fecha) || { fecha: this.fecha, checklist: {}, nota: '', cumplimiento: 0 };
+      d.nota = texto;
+      d.mood = mood;
+      Storage.guardarDia(this.fecha, d);
+      this.cierreDismissed = true;
+      backdrop.classList.remove('active');
+      const mainNota = document.getElementById('nota-textarea');
+      if (mainNota) mainNota.value = texto;
+      showToast('Día cerrado');
+    });
   }
 };
 
@@ -540,7 +628,6 @@ const App = {
    ========================================================= */
 const Historial = {
   init() {
-    initDarkMode();
     this._showSkeleton();
     // Defer actual render so skeleton paints first
     requestAnimationFrame(() => setTimeout(() => this._render(), 16));
@@ -566,7 +653,7 @@ const Historial = {
     if (!container) return;
     const dias = Storage.obtenerHistorial(30);
     const ITEM_LABELS = {};
-    CHECKLIST_ITEMS.forEach(i => ITEM_LABELS[i.id] = i.label);
+    getDailyItems().forEach(i => ITEM_LABELS[i.id] = i.label);
 
     if (dias.every(d => !d.data)) {
       container.innerHTML = `<div class="empty-state fade-in"><p>Aún no hay registros.<br>Completa tu primer checklist.</p></div>`;
@@ -711,258 +798,3 @@ const Historial = {
   }
 };
 
-/* =========================================================
-   Config
-   ========================================================= */
-const Config = {
-  init() {
-    initDarkMode();
-    this._render();
-  },
-
-  _render() {
-    const container = document.getElementById('config-container');
-    if (!container) return;
-    const config = Storage.obtenerConfig();
-    const DIAS_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-    let diasHTML = '';
-    for (let i = 0; i < 7; i++) {
-      const checked = config.diasGym.includes(i) ? 'checked' : '';
-      diasHTML += `<input type="checkbox" class="dia-checkbox" id="dia-${i}" value="${i}" ${checked}><label for="dia-${i}" class="dia-label">${DIAS_LABELS[i]}</label>`;
-    }
-
-    container.innerHTML = `
-      <div class="config-section fade-in">
-        <div class="config-card">
-          <h3 style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Datos personales
-          </h3>
-          <div class="config-row"><label for="cfg-nombre">Nombre</label><input type="text" id="cfg-nombre" value="${config.nombre}"></div>
-          <div class="config-row"><label for="cfg-peso-inicial">Peso inicial (kg)</label><input type="number" id="cfg-peso-inicial" value="${config.pesoInicial}" step="0.1"></div>
-          <div class="config-row"><label for="cfg-meta">Meta de peso (kg)</label><input type="number" id="cfg-meta" value="${config.meta}" step="0.1"></div>
-          <div class="config-row"><label for="cfg-hito">Hito motivador (kg)</label><input type="number" id="cfg-hito" value="${config.hito}" step="0.1"></div>
-          <div class="config-row"><label for="cfg-meta-cal">Meta calórica diaria (kcal)</label><input type="number" id="cfg-meta-cal" value="${config.metaCal || 2200}" step="50"></div>
-        </div>
-      </div>
-
-      <div class="config-section fade-in">
-        <div class="config-card">
-          <h3 style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Horarios
-          </h3>
-          <div class="config-row"><label for="cfg-hora-gym">Hora de inicio del gym</label><input type="time" id="cfg-hora-gym" value="${config.horaGym}"></div>
-          <div class="config-row"><label for="cfg-hora-cena">Hora de cena</label><input type="time" id="cfg-hora-cena" value="${config.horaCena}"></div>
-          <div class="config-row"><label>Días de gym</label><div class="dias-gym-grid">${diasHTML}</div></div>
-        </div>
-      </div>
-
-      <div class="config-section fade-in">
-        <button id="btn-guardar-config" class="btn btn-primary btn-full">Guardar configuración</button>
-      </div>
-
-      <div class="config-section fade-in">
-        <div class="config-card">
-          <h3 style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            Notificaciones
-          </h3>
-          <div id="notif-status-row" style="margin-bottom:14px;font-size:0.83rem;color:var(--text-muted);"></div>
-          <!-- Toggle global -->
-          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-input);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
-            <div>
-              <div style="font-weight:700;font-size:0.88rem;">Activar notificaciones</div>
-              <div style="font-size:0.73rem;color:var(--text-muted);">Recordatorios de comidas, gym y cierre del día</div>
-            </div>
-            <label class="toggle-switch" style="flex-shrink:0;">
-              <input type="checkbox" id="notif-global-toggle">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <!-- Individual toggles -->
-          <div id="notif-items" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-          <button id="btn-save-notif" class="btn btn-primary btn-full" style="margin-bottom:8px;">Guardar preferencias</button>
-          <button id="btn-test-notif" class="btn btn-secondary btn-full">Enviar notificación de prueba</button>
-        </div>
-      </div>
-
-      <div class="config-section fade-in">
-        <div class="config-card">
-          <h3 style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Datos
-          </h3>
-          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Exporta tus datos como respaldo o importa uno anterior.</p>
-          <div class="backup-actions">
-            <button id="btn-exportar" class="btn btn-secondary" style="flex:1;">Exportar</button>
-            <button id="btn-importar" class="btn btn-secondary" style="flex:1;">Importar</button>
-          </div>
-          <input type="file" id="import-file" accept=".json" style="display:none;">
-        </div>
-      </div>
-
-      <div class="config-section fade-in">
-        <div class="config-card">
-          <h3 style="display:flex;align-items:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
-            Sincronización
-          </h3>
-          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">Usa el mismo correo de Google para tener tus datos en cualquier dispositivo.</p>
-          <div id="sync-status" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;"></div>
-          <div style="display:flex;gap:8px;">
-            <button id="btn-sync-up" class="btn btn-secondary" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-              Subir datos
-            </button>
-            <button id="btn-sync-down" class="btn btn-secondary" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-              Descargar
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Save config
-    document.getElementById('btn-guardar-config').addEventListener('click', () => {
-      const diasGym = [];
-      for (let i = 0; i < 7; i++) { if (document.getElementById(`dia-${i}`).checked) diasGym.push(i); }
-      Storage.guardarConfig({
-        nombre: document.getElementById('cfg-nombre').value,
-        pesoInicial: parseFloat(document.getElementById('cfg-peso-inicial').value),
-        meta: parseFloat(document.getElementById('cfg-meta').value),
-        hito: parseFloat(document.getElementById('cfg-hito').value),
-        metaCal: parseInt(document.getElementById('cfg-meta-cal').value) || 2200,
-        horaGym: document.getElementById('cfg-hora-gym').value,
-        horaCena: document.getElementById('cfg-hora-cena').value,
-        diasGym
-      });
-      showToast('Configuración guardada');
-    });
-
-    // Test notification
-    document.getElementById('btn-test-notif').addEventListener('click', () => Notificaciones.test());
-
-    // Notification config UI
-    const notifCfg = JSON.parse(localStorage.getItem('fitpulse_notif_cfg') || '{}');
-    const globalOn  = notifCfg.global !== false;
-    const globalToggle = document.getElementById('notif-global-toggle');
-    if (globalToggle) globalToggle.checked = globalOn;
-
-    const notifStatusRow = document.getElementById('notif-status-row');
-    if (notifStatusRow) {
-      const perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
-      if (perm === 'granted') {
-        notifStatusRow.innerHTML = '<span style="color:#30D158;">&#10003; Permiso concedido</span>';
-      } else if (perm === 'denied') {
-        notifStatusRow.innerHTML = '<span style="color:#FF453A;">&#9888; Bloqueado por el navegador — actívalo en Ajustes del sitio</span>';
-      } else {
-        notifStatusRow.innerHTML = '<span style="color:#FFD60A;">&#9711; Sin permiso — toca "Guardar preferencias" para solicitarlo</span>';
-      }
-    }
-
-    const NOTIF_LABELS = [
-      { id: 'pre_entreno',     label: 'Pre-entreno (gym)',      hora: '05:45' },
-      { id: 'pesaje',          label: 'Recordatorio pesaje',    hora: '06:30' },
-      { id: 'desayuno',        label: 'Desayuno post-gym',      hora: '07:05' },
-      { id: 'merienda_am',     label: 'Merienda mañana',        hora: '10:00' },
-      { id: 'almuerzo',        label: 'Almuerzo',               hora: '12:30' },
-      { id: 'merienda_pm',     label: 'Merienda tarde',         hora: '15:30' },
-      { id: 'cena',            label: 'Cena',                   hora: '19:00' },
-      { id: 'cierre',          label: 'Cierre del día',         hora: '20:45' },
-    ];
-
-    const notifItems = document.getElementById('notif-items');
-    if (notifItems) {
-      notifItems.innerHTML = NOTIF_LABELS.map(n => {
-        const isOn  = notifCfg[n.id]?.on !== false;
-        const hora  = notifCfg[n.id]?.hora || n.hora;
-        return `
-          <div style="display:flex;align-items:center;gap:10px;background:var(--bg-input);border-radius:10px;padding:10px 12px;">
-            <label class="toggle-switch" style="flex-shrink:0;">
-              <input type="checkbox" class="notif-item-toggle" data-id="${n.id}" ${isOn ? 'checked' : ''}>
-              <span class="toggle-slider"></span>
-            </label>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:0.82rem;font-weight:700;">${n.label}</div>
-            </div>
-            <input type="time" class="notif-item-hora" data-id="${n.id}" value="${hora}"
-              style="border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--bg-card);color:var(--text-primary);font-size:0.8rem;width:90px;">
-          </div>`;
-      }).join('');
-    }
-
-    document.getElementById('btn-save-notif')?.addEventListener('click', async () => {
-      const cfg = { global: globalToggle?.checked !== false };
-      document.querySelectorAll('.notif-item-toggle').forEach(cb => {
-        const id = cb.dataset.id;
-        const hora = document.querySelector(`.notif-item-hora[data-id="${id}"]`)?.value;
-        cfg[id] = { on: cb.checked, hora: hora || undefined };
-      });
-      localStorage.setItem('fitpulse_notif_cfg', JSON.stringify(cfg));
-      // Apply updated schedule
-      if (cfg.global && typeof Notificaciones !== 'undefined') {
-        await Notificaciones.solicitarPermiso();
-        Notificaciones._scheduleToday();
-      }
-      showToast('Preferencias de notificaciones guardadas');
-    });
-
-    // Export
-    document.getElementById('btn-exportar').addEventListener('click', () => {
-      const blob = new Blob([Storage.exportarDatos()], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `fitpulse_backup_${Storage.today()}.json`;
-      a.click();
-    });
-
-    // Import
-    document.getElementById('btn-importar').addEventListener('click', () => document.getElementById('import-file').click());
-    document.getElementById('import-file').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try { Storage.importarDatos(ev.target.result); showToast('Datos importados. Recargando...'); setTimeout(() => location.reload(), 1500); }
-        catch { showToast('Error al importar', 'warning'); }
-      };
-      reader.readAsText(file);
-    });
-
-    // Cloud Sync buttons
-    const syncStatus = document.getElementById('sync-status');
-    const user = typeof Auth !== 'undefined' ? Auth.getUser() : null;
-    if (syncStatus) {
-      const connected = !!user?.email;
-      const SVG_CHECK = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#30D158" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-      const SVG_WARN  = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#FFD60A" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-      syncStatus.innerHTML = connected
-        ? `<span style="display:flex;align-items:center;gap:5px;">${SVG_CHECK} Conectado como ${user.email}</span>`
-        : `<span style="display:flex;align-items:center;gap:5px;">${SVG_WARN} Sin sesión — inicia sesión con Google para sincronizar</span>`;
-    }
-    document.getElementById('btn-sync-up')?.addEventListener('click', async () => {
-      if (!user) { showToast('Inicia sesión con Google primero', 'warning'); return; }
-      showToast('Subiendo datos...');
-      await CloudSync.pushToCloud();
-      showToast('✅ Datos subidos a la nube');
-    });
-    document.getElementById('btn-sync-down')?.addEventListener('click', async () => {
-      if (!user) { showToast('Inicia sesión con Google primero', 'warning'); return; }
-      showToast('Descargando desde la nube...');
-      await CloudSync.forceDownload();
-    });
-  }
-};
-
-/* =========================================================
-   Progreso
-   ========================================================= */
-const Progreso = {
-  init() {
-    initDarkMode();
-    Charts.init();
-  }
-};

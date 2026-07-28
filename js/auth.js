@@ -190,6 +190,61 @@ const Auth = {
     }
   },
 
+  async loginWithEmail(email, password) {
+    if (!this.initialized) {
+      showToast('Función no disponible sin conexión', 'warning');
+      return false;
+    }
+    try {
+      const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const result = await signInWithEmailAndPassword(this.auth, email, password);
+      this.user = result.user;
+      localStorage.setItem('fitpulse_user', JSON.stringify({
+        uid: result.user.uid, name: result.user.displayName, email: result.user.email, photo: result.user.photoURL
+      }));
+      const config = Storage.obtenerConfig();
+      const needsOnboarding = !config.nombre || config.nombre === 'Usuario';
+      return needsOnboarding ? 'onboarding' : 'dashboard';
+    } catch (e) {
+      console.error('Email login error:', e);
+      const msgs = {
+        'auth/user-not-found': 'No existe una cuenta con ese correo',
+        'auth/wrong-password': 'Contraseña incorrecta',
+        'auth/invalid-credential': 'Correo o contraseña incorrectos',
+        'auth/invalid-email': 'Correo inválido',
+        'auth/operation-not-allowed': 'El inicio de sesión con correo no está habilitado'
+      };
+      showToast(msgs[e.code] || 'Error al iniciar sesión', 'warning');
+      return false;
+    }
+  },
+
+  async registerWithEmail(email, password) {
+    if (!this.initialized) {
+      showToast('Función no disponible sin conexión', 'warning');
+      return false;
+    }
+    try {
+      const { createUserWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const result = await createUserWithEmailAndPassword(this.auth, email, password);
+      this.user = result.user;
+      localStorage.setItem('fitpulse_user', JSON.stringify({
+        uid: result.user.uid, name: result.user.displayName, email: result.user.email, photo: result.user.photoURL
+      }));
+      return 'onboarding';
+    } catch (e) {
+      console.error('Email register error:', e);
+      const msgs = {
+        'auth/email-already-in-use': 'Ya existe una cuenta con ese correo',
+        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+        'auth/invalid-email': 'Correo inválido',
+        'auth/operation-not-allowed': 'El registro con correo no está habilitado'
+      };
+      showToast(msgs[e.code] || 'Error al crear la cuenta', 'warning');
+      return false;
+    }
+  },
+
   async logout() {
     if (this.initialized && this.auth) {
       const { signOut } = this._authModules;

@@ -37,7 +37,6 @@ const Cardio = {
   },
 
   init() {
-    initDarkMode();
     this._render();
   },
 
@@ -186,7 +185,16 @@ const Cardio = {
     const distancia = parseFloat(document.getElementById('cardio-distancia')?.value) || 0;
     const kcal = this.calcKcal(tipo, distancia, duracion, pesoKg);
     const el = document.getElementById('cardio-kcal-preview');
-    if (el) el.textContent = duracion > 0 ? `~${kcal} kcal` : '—';
+    if (el) {
+      let txt = duracion > 0 ? `~${kcal} kcal` : '—';
+      if (distancia > 0 && duracion > 0) {
+        const paceMin = duracion / distancia;
+        const min = Math.floor(paceMin);
+        const sec = Math.round((paceMin - min) * 60);
+        txt += ` · ${min}:${String(sec).padStart(2, '0')} /km`;
+      }
+      el.textContent = txt;
+    }
   },
 
   _sessionCard(s) {

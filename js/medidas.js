@@ -24,8 +24,45 @@ const _SVG_CAL_SM   = `<svg viewBox="0 0 24 24" width="16" height="16" fill="non
 
 const Medidas = {
   init() {
-    initDarkMode();
     this._render();
+    this._renderFoto();
+  },
+
+  async _renderFoto() {
+    const container = document.getElementById('medidas-foto-container');
+    if (!container || typeof PhotoStore === 'undefined') return;
+    const fecha = Storage.today();
+    const existing = await PhotoStore.get(fecha);
+    const photos = await PhotoStore.getAll();
+    container.innerHTML = `
+      <div class="config-card fade-in" style="margin-bottom:20px;">
+        <h3 style="display:flex;align-items:center;gap:8px;"><i data-lucide="camera" style="width:18px;height:18px;"></i>Foto de progreso</h3>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:14px;">Local y opcional — nunca se sube a la nube.</p>
+        <label class="sheet-row" style="border-style:dashed;justify-content:center;">
+          <input type="file" accept="image/*" capture="environment" id="foto-input" style="display:none;">
+          <span class="sheet-row-label" style="flex:none;color:var(--lime);">${existing ? 'Reemplazar foto de hoy' : '+ Tomar foto de hoy'}</span>
+        </label>
+        ${photos.length > 0 ? `<div style="display:flex;gap:8px;overflow-x:auto;margin-top:12px;" id="foto-strip"></div>` : ''}
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    document.getElementById('foto-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await PhotoStore.save(fecha, file);
+      showToast('Foto guardada');
+      this._renderFoto();
+    });
+    const strip = document.getElementById('foto-strip');
+    if (strip) {
+      photos.slice(0, 10).forEach(p => {
+        const url = URL.createObjectURL(p.blob);
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:12px;flex:none;border:1px solid var(--border);';
+        strip.appendChild(img);
+      });
+    }
   },
 
   _render() {

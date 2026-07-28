@@ -2,17 +2,19 @@
    FitPulse - Service Worker v1
    ========================================================= */
 
-const CACHE_NAME = 'fitpulse-v13';
+const CACHE_NAME = 'fitpulse-v14';
 const ASSETS = [
   './', './login.html', './onboarding.html', './privacy.html',
   './index.html', './dashboard.html', './comidas.html',
   './ejercicios.html', './progreso.html', './historial.html',
   './medidas.html', './menu.html', './config.html', './cardio.html',
+  './perfil.html',
   './css/app.css',
   './js/firebase-config.js', './js/storage.js', './js/auth.js',
   './js/cloud-sync.js', './js/app.js', './js/notifications.js',
-  './js/charts.js', './js/comidas.js', './js/dashboard.js',
-  './js/ejercicios.js', './js/medidas.js', './js/cardio.js',
+  './js/comidas.js', './js/progreso.js', './js/routines.js',
+  './js/medidas.js', './js/cardio.js', './js/icons.js',
+  './js/photo-store.js', './js/quick-add.js', './js/perfil.js',
   './manifest.json', './icon-192.png', './icon-512.png'
 ];
 
@@ -48,7 +50,7 @@ self.addEventListener('message', (event) => {
   if (event.data.type === 'SHOW_NOTIFICATION') {
     self.registration.showNotification(event.data.title, {
       body: event.data.body, icon: './icon-192.png', badge: './icon-192.png',
-      tag: `fitpulse-${Date.now()}`, vibrate: [200, 100, 200], data: { url: './dashboard.html' }
+      tag: `fitpulse-${Date.now()}`, vibrate: [200, 100, 200], data: { url: './index.html' }
     });
   }
 });
@@ -58,7 +60,7 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then(clients => {
       for (const c of clients) { if ('focus' in c) return c.focus(); }
-      return self.clients.openWindow('./dashboard.html');
+      return self.clients.openWindow('./index.html');
     })
   );
 });

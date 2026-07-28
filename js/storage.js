@@ -12,6 +12,7 @@ const Storage = {
   WATER_PREFIX: 'nutritrack_water_',
   EJERCICIOS_PREFIX: 'nutritrack_ejercicios_',
   MEDIDAS_KEY: 'nutritrack_medidas',
+  CUSTOM_FOODS_KEY: 'fitpulse_custom_foods',
 
   /* ---------- helpers ---------- */
   _monthKey(fecha) {
@@ -146,8 +147,24 @@ const Storage = {
 
   obtenerConfig() {
     const raw = localStorage.getItem(this.CONFIG_KEY);
-    if (raw) { const cfg = JSON.parse(raw); if (!cfg.metaCal) cfg.metaCal = 2200; return cfg; }
-    return { nombre: 'Jorge', horaGym: '06:00', diasGym: [1,2,3,4,5], horaCena: '19:00', meta: 84.5, hito: 100, pesoInicial: 106.7, metaCal: 2200 };
+    if (raw) { const cfg = JSON.parse(raw); if (!cfg.metaCal) cfg.metaCal = 2200; if (cfg.goal === undefined) cfg.goal = null; return cfg; }
+    return { nombre: 'Jorge', horaGym: '06:00', diasGym: [1,2,3,4,5], horaCena: '19:00', meta: 84.5, hito: 100, pesoInicial: 106.7, metaCal: 2200, goal: null };
+  },
+
+  /* ---------- alimentos personalizados (MÍOS) ---------- */
+  getCustomFoods() {
+    const raw = localStorage.getItem(this.CUSTOM_FOODS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  },
+
+  saveCustomFood(food) {
+    const foods = this.getCustomFoods();
+    const entry = { id: food.id || `custom_${Date.now()}`, name: food.name, cal: +food.cal || 0, prot: +food.prot || 0, carb: +food.carb || 0, fat: +food.fat || 0, serving: food.serving || '1 porción', cat: 'custom' };
+    const idx = foods.findIndex(f => f.id === entry.id);
+    if (idx >= 0) foods[idx] = entry; else foods.push(entry);
+    localStorage.setItem(this.CUSTOM_FOODS_KEY, JSON.stringify(foods));
+    this._syncToCloud();
+    return entry;
   },
 
   /* ---------- notificaciones ---------- */
@@ -165,10 +182,6 @@ const Storage = {
     data[id] = true;
     localStorage.setItem(this.NOTIF_SENT_KEY, JSON.stringify(data));
   },
-
-  /* ---------- dark mode ---------- */
-  getDarkMode() { return localStorage.getItem('fitpulse_dark') || 'dark'; },
-  setDarkMode(val) { localStorage.setItem('fitpulse_dark', val); },
 
   /* ---------- racha ---------- */
   calcularRacha() {
@@ -234,7 +247,7 @@ const Storage = {
     const data = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key.startsWith('nutritrack_') || key === 'nutritrack_dark') data[key] = JSON.parse(localStorage.getItem(key));
+      if (key.startsWith('nutritrack_') || key.startsWith('fitpulse_')) data[key] = JSON.parse(localStorage.getItem(key));
     }
     return JSON.stringify(data, null, 2);
   },
@@ -242,7 +255,7 @@ const Storage = {
   importarDatos(jsonStr) {
     const data = JSON.parse(jsonStr);
     for (const [key, val] of Object.entries(data)) {
-      if (key.startsWith('nutritrack_') || key === 'nutritrack_dark') localStorage.setItem(key, JSON.stringify(val));
+      if (key.startsWith('nutritrack_') || key.startsWith('fitpulse_')) localStorage.setItem(key, JSON.stringify(val));
     }
   },
 

@@ -1,16 +1,18 @@
-﻿<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var t=localStorage.getItem("fitpulse_dark")||"dark";document.documentElement.className=t==="light"?"light":"dark"}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="FitPulse - Hoy">
-  <meta name="theme-color" content="#0D0D0D">
+  <meta name="theme-color" content="#08080A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>FitPulse - Hoy</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%237C3AED'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23C8FF4D'/><text x='32' y='44' font-size='26' text-anchor='middle' fill='%2308080A' font-family='Arial' font-weight='bold'>FP</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -19,29 +21,36 @@
     <span>Activa las notificaciones para no olvidar tu plan</span>
   </div>
   <header class="app-header">
-    <a href="dashboard.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a>
+    <a href="index.html" class="logo"><div class="logo-icon"><img src="icon-192.png" alt="FitPulse"></div><span class="logo-text">FitPulse</span></a>
     <div class="header-actions">
-      <div id="user-avatar" class="user-avatar"></div>
-      <div id="dark-toggle" class="dark-toggle" title="Modo oscuro"><span class="toggle-icon icon-sun"><i data-lucide="sun" style="width:16px;height:16px;"></i></span><span class="toggle-icon icon-moon"><i data-lucide="moon" style="width:16px;height:16px;"></i></span></div>
+      <button class="header-icon-btn" id="btn-notif-bell" title="Notificaciones"><i data-lucide="bell" style="width:18px;height:18px;"></i><span class="dot"></span></button>
+      <a href="perfil.html" id="user-avatar" class="user-avatar"></a>
     </div>
   </header>
   <main class="container">
-    <div id="fecha-display" class="fecha-display"></div>
-    <div id="stats-row" class="stats-row"></div>
+    <div id="fecha-display" style="margin-bottom:20px;"></div>
+    <div class="hero-card" id="hero-ring-container"></div>
+    <div id="today-workout-container"></div>
     <div id="water-widget" class="water-widget"></div>
     <div id="checklist-container"></div>
     <div id="nota-container" class="nota-section"></div>
   </main>
-  <div id="nota-overlay" class="overlay">
-    <div class="overlay-content"><h2>⏰ ¡Alto!</h2><p>Son más de las 9:00 PM y no has escrito tu nota del día.</p><textarea id="overlay-nota" placeholder="Escribe qué comiste, cómo te sentiste..."></textarea><button id="overlay-guardar" class="btn btn-primary btn-full">Guardar nota</button></div>
-  </div>
+
+  <!-- Modal de edición de hábitos (repurpose de .overlay) -->
+  <div id="nota-overlay" class="overlay"></div>
+
+  <!-- Bottom sheet de Cierre del día (no bloqueante) -->
+  <div id="cierre-backdrop" class="sheet-backdrop"></div>
+
+  <div class="bottom-nav-scrim"></div>
   <nav class="bottom-nav">
-    <a href="dashboard.html" class="nav-item" id="nav-dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Inicio</span></a>
-    <a href="index.html" class="nav-item active" id="nav-checklist"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Hoy</span></a>
-    <a href="comidas.html" class="nav-item" id="nav-comidas"><svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg><span>Comidas</span></a>
-    <a href="ejercicios.html" class="nav-item" id="nav-gym"><svg viewBox="0 0 24 24"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg><span>Gym</span></a>
-    <a href="menu.html" class="nav-item" id="nav-menu"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg><span>Más</span></a>
+    <a href="index.html" class="nav-item active"><i data-lucide="flame" style="width:21px;height:21px"></i><span>HOY</span></a>
+    <a href="ejercicios.html" class="nav-item"><i data-lucide="dumbbell" style="width:21px;height:21px"></i><span>ENTRENO</span></a>
+    <div class="nav-fab-wrap"><button class="nav-fab" id="nav-fab">+</button></div>
+    <a href="progreso.html" class="nav-item"><i data-lucide="trending-up" style="width:21px;height:21px"></i><span>PROGRESO</span></a>
+    <a href="comidas.html" class="nav-item"><i data-lucide="utensils" style="width:21px;height:21px"></i><span>COMIDAS</span></a>
   </nav>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
   <script src="js/icons.js"></script>
   <script src="js/firebase-config.js"></script>
@@ -49,7 +58,9 @@
   <script src="js/auth.js"></script>
   <script src="js/cloud-sync.js"></script>
   <script src="js/notifications.js"></script>
+  <script src="js/routines.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/quick-add.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       await Auth.init();
@@ -57,6 +68,9 @@
       if (!ok) return;
       App.init();
       CloudSync.scheduleSync();
+      Icons.init(document.body);
+      QuickAdd.init();
+      document.getElementById('btn-notif-bell').addEventListener('click', () => Notificaciones.solicitarPermiso());
     });
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
   </script>
