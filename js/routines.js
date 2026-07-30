@@ -290,7 +290,7 @@ const Routines = {
       : null;
 
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:500px;max-height:90vh;overflow-y:auto;text-align:left;">
+      <div class="overlay-content" style="overflow-y:auto;text-align:left;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h2 style="font-size:1.1rem;font-weight:800;">${routine.name}</h2>
           <button id="detail-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
@@ -317,11 +317,11 @@ const Routines = {
       </div>
     `;
 
-    overlay.classList.add('active');
+    overlay.classList.add('active', 'full');
     Icons.init();
-    document.getElementById('detail-close').onclick = () => overlay.classList.remove('active');
+    document.getElementById('detail-close').onclick = () => overlay.classList.remove('active', 'full');
     document.getElementById('btn-start-routine').onclick = () => {
-      overlay.classList.remove('active');
+      overlay.classList.remove('active', 'full');
       this.startSession(id);
     };
   },
@@ -375,6 +375,7 @@ const Routines = {
     const lastSet = ex.sets[ex.sets.length - 1];
     const weightStart = lastSet?.weightDone ?? (ex.weight || 0);
 
+    overlay.classList.remove('full');
     overlay.classList.add('active');
     overlay.innerHTML = `
       <div class="overlay-content" style="max-width:420px;text-align:center;">
@@ -605,6 +606,7 @@ const Routines = {
         </div>
       </div>
     `;
+    overlay.classList.remove('full');
     overlay.classList.add('active');
     Icons.init();
 
@@ -655,7 +657,7 @@ const Routines = {
 
     const overlay = document.getElementById('routine-overlay');
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:520px;width:100%;max-height:90vh;overflow-y:auto;overflow-x:hidden;text-align:left;box-sizing:border-box;">
+      <div class="overlay-content" style="overflow-y:auto;overflow-x:hidden;text-align:left;box-sizing:border-box;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? 'Nueva Rutina' : 'Editar Rutina'}</h2>
           <button id="editor-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;"><i data-lucide="x" style="width:22px;height:22px;"></i></button>
@@ -712,7 +714,7 @@ const Routines = {
       </div>
     `;
 
-    overlay.classList.add('active');
+    overlay.classList.add('active', 'full');
     Icons.init();
 
     let selectedIcon = routine?.icon || 'dumbbell';
@@ -771,12 +773,12 @@ const Routines = {
       if (isNew) this.create(data);
       else this.update(id, data);
 
-      overlay.classList.remove('active');
+      overlay.classList.remove('active', 'full');
       this._render();
       if (typeof showToast === 'function') showToast(isNew ? 'Rutina creada' : 'Cambios guardados');
     });
 
-    document.getElementById('editor-close').onclick = () => overlay.classList.remove('active');
+    document.getElementById('editor-close').onclick = () => overlay.classList.remove('active', 'full');
   },
 
   _exerciseRow(ex) {

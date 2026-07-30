@@ -259,7 +259,22 @@ const App = {
     if (!el) return;
     if (typeof Routines === 'undefined') { el.innerHTML = ''; return; }
     const rutinaHoy = Routines.getTodayRoutine();
-    if (!rutinaHoy) { el.innerHTML = ''; return; }
+    if (!rutinaHoy) {
+      el.innerHTML = `
+        <div class="hero-card" style="background:var(--bg-card);border-color:var(--border);text-align:center;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--lime-soft);color:var(--lime);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <i data-lucide="dumbbell" style="width:24px;height:24px;"></i>
+          </div>
+          <div class="font-display" style="font-size:22px;line-height:1.1;margin-bottom:6px;">Aún no tienes rutinas</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Crea una rutina de gym (por ejemplo, de 3 o 4 días) y aquí verás la de hoy.</div>
+          <a href="ejercicios.html#fuerza?new=1" class="btn-lime" style="width:100%;height:52px;border-radius:16px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;">
+            <i data-lucide="plus" style="width:18px;height:18px;"></i>Crear rutina
+          </a>
+        </div>
+      `;
+      Icons.init(el);
+      return;
+    }
     const last = Routines.getLastSession ? Routines.getLastSession(rutinaHoy.id) : null;
     const vol = last ? Routines.calcVolume(last) : 0;
     el.innerHTML = `
@@ -307,10 +322,12 @@ const App = {
     document.getElementById('water-plus').addEventListener('click', () => {
       Storage.agregarVasoAgua(this.fecha);
       this._renderWater();
+      this._renderHeroRing();
     });
     document.getElementById('water-minus').addEventListener('click', () => {
       Storage.quitarVasoAgua(this.fecha);
       this._renderWater();
+      this._renderHeroRing();
     });
     Icons.init();
   },
@@ -399,7 +416,7 @@ const App = {
               const all = getDailyItems().filter(i => i.id !== item.id);
               saveDailyItems(all);
               this._renderChecklist();
-              this._renderStats();
+              this._renderHeroRing();
               showToast('Hábito eliminado');
             }
           });
@@ -508,7 +525,7 @@ const App = {
       saveDailyItems(all);
       overlay.classList.remove('active');
       this._renderChecklist();
-      this._renderStats();
+      this._renderHeroRing();
       showToast(isNew ? 'Hábito agregado' : 'Hábito actualizado');
     });
   },
@@ -523,7 +540,7 @@ const App = {
     el.classList.toggle('checked');
     const box = el.querySelector('.check-box');
     if (box) { box.classList.add('pulse'); setTimeout(() => box.classList.remove('pulse'), 400); }
-    this._renderStats();
+    this._renderHeroRing();
   },
 
   _renderNota() {

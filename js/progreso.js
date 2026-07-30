@@ -76,10 +76,10 @@ const ProgresoPage = {
 
       <div class="sparkline-card" style="margin-bottom:12px;">
         <h3 style="font-size:0.95rem;margin-bottom:12px;">Registrar peso</h3>
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:stretch;">
           <input type="number" id="peso-input" step="0.1" placeholder="Ej: 85.5" inputmode="decimal"
-            style="flex:1;padding:12px 14px;border:1.5px solid var(--border-strong);border-radius:12px;background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:1rem;outline:none;">
-          <button id="btn-registrar-peso" class="btn-lime" style="padding:0 20px;border:none;border-radius:12px;cursor:pointer;font-size:15px;">Guardar</button>
+            style="flex:1;min-width:0;padding:12px 14px;border:1.5px solid var(--border-strong);border-radius:12px;background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:1rem;outline:none;box-sizing:border-box;">
+          <button id="btn-registrar-peso" class="btn-lime" style="flex-shrink:0;white-space:nowrap;height:48px;padding:0 20px;border:none;border-radius:12px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;">Guardar</button>
         </div>
       </div>
 

@@ -33,7 +33,7 @@
     <div style="text-align:center;font-size:0.72rem;color:var(--text-dim);">FitPulse v2.0</div>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
+  <script src="js/lucide.min.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
@@ -49,8 +49,9 @@
       if (!ok) return;
       Perfil.init();
       Icons.init(document.body);
+      Notificaciones.init();
     });
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
   </script>
+  <script src="js/sw-client.js"></script>
 </body>
 </html>

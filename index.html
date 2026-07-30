@@ -50,7 +50,7 @@
     <a href="comidas.html" class="nav-item"><i data-lucide="utensils" style="width:21px;height:21px"></i><span>COMIDAS</span></a>
   </nav>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.469.0/umd/lucide.min.js" defer></script>
+  <script src="js/lucide.min.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
@@ -71,7 +71,7 @@
       QuickAdd.init();
       document.getElementById('btn-notif-bell').addEventListener('click', () => Notificaciones.solicitarPermiso());
     });
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
   </script>
+  <script src="js/sw-client.js"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
    FitPulse - Service Worker v1
    ========================================================= */
 
-const CACHE_NAME = 'fitpulse-v14';
+const CACHE_NAME = 'fitpulse-v15';
 const ASSETS = [
   './', './login.html', './onboarding.html', './privacy.html',
   './index.html', './dashboard.html', './comidas.html',
@@ -14,6 +14,7 @@ const ASSETS = [
   './js/cloud-sync.js', './js/app.js', './js/notifications.js',
   './js/comidas.js', './js/progreso.js', './js/routines.js',
   './js/medidas.js', './js/cardio.js', './js/icons.js',
+  './js/lucide.min.js', './js/sw-client.js',
   './js/photo-store.js', './js/quick-add.js', './js/perfil.js',
   './manifest.json', './icon-192.png', './icon-512.png'
 ];

@@ -1,0 +1,24 @@
+/* =========================================================
+   FitPulse - Registro de Service Worker + auto-actualización
+   Cuando se publica una version nueva, el SW activa con
+   skipWaiting()+clients.claim() y esta pestaña se recarga sola
+   una vez, sin depender de que el usuario haga F5.
+   ========================================================= */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    const checkForUpdate = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    });
+    setInterval(checkForUpdate, 5 * 60 * 1000);
+  }).catch(() => {});
+})();
