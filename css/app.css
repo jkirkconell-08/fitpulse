@@ -673,6 +673,19 @@ h1, h2, h3, .font-display {
   padding: max(20px, env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Sheet with a pinned footer (buscar alimento): flex column so only the
+   results list scrolls — head and footer stay put. Avoids relying on
+   position:sticky, which iOS Safari fails to honor when an ancestor mixes
+   overflow-x:hidden with overflow-y:auto (exactly this element's base rule),
+   silently pushing the "Continuar" button to the bottom of the whole list. */
+.overlay.full .overlay-content.food-sheet {
+  display: flex;
+  flex-direction: column;
+}
+.food-sheet-head { flex: none; }
+.food-sheet-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.food-sheet-foot { flex: none; }
+
 .overlay-content h2 {
   font-size: 1.3rem;
   font-weight: 800;
@@ -2354,11 +2367,6 @@ html.light .date-picker-hidden { color-scheme: light; }
   border-radius: 14px;
   padding: 10px 14px;
   margin-top: 12px;
-  position: sticky;
-  bottom: 0;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 10;
 }
 .cart-bar-info { display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;color:var(--text-primary);flex-wrap:wrap; }
 #cart-confirm:disabled { opacity:0.4;cursor:not-allowed; }

@@ -584,9 +584,27 @@ const Comidas = {
       if (selection.size === 0) return;
       searchInput.style.display = 'none';
       catBtns.style.display = 'none';
-      cartBarEl.innerHTML = '';
 
       let tipo = this._autoMealType();
+
+      const renderReviewFooter = () => {
+        cartBarEl.innerHTML = `<button id="review-save" class="btn-lime" style="width:100%;height:52px;border:none;border-radius:16px;cursor:pointer;font-size:16px;">Guardar ${selection.size} alimento${selection.size > 1 ? 's' : ''}</button>`;
+        document.getElementById('review-save').onclick = () => {
+          const registro = Storage.obtenerComidas(this.fecha);
+          if (!registro.comidas) registro.comidas = [];
+          selection.forEach(entry => {
+            registro.comidas.push({
+              id: Date.now() + Math.random(), nombre: entry.food.name, cal: entry.food.cal, prot: entry.food.prot,
+              carb: entry.food.carb, fat: entry.food.fat, serving: entry.food.serving, cantidad: entry.qty, tipo
+            });
+          });
+          Storage.guardarComidas(this.fecha, registro);
+          const n = selection.size;
+          overlay.classList.remove('active', 'full');
+          this._render();
+          this._toast(`${n} alimento${n > 1 ? 's' : ''} agregado${n > 1 ? 's' : ''}`);
+        };
+      };
 
       const renderReviewItems = () => {
         const wrap = document.getElementById('review-items');
@@ -604,10 +622,9 @@ const Comidas = {
               <button class="rev-remove" data-id="${id}" title="Quitar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;display:flex;"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
             </div>
           </div>
-        `).join('') + `
-          <button id="review-save" class="btn-lime" style="width:100%;height:52px;border:none;border-radius:16px;cursor:pointer;margin-top:16px;font-size:16px;">Guardar ${selection.size} alimento${selection.size > 1 ? 's' : ''}</button>
-        `;
+        `).join('');
         Icons.init(wrap);
+        renderReviewFooter();
 
         wrap.querySelectorAll('.rev-qty-dec').forEach(b => b.onclick = () => {
           const e = selection.get(b.dataset.id); if (!e) return;
@@ -630,22 +647,6 @@ const Comidas = {
           }
           renderReviewItems();
         });
-        const saveBtn = document.getElementById('review-save');
-        if (saveBtn) saveBtn.onclick = () => {
-          const registro = Storage.obtenerComidas(this.fecha);
-          if (!registro.comidas) registro.comidas = [];
-          selection.forEach(entry => {
-            registro.comidas.push({
-              id: Date.now() + Math.random(), nombre: entry.food.name, cal: entry.food.cal, prot: entry.food.prot,
-              carb: entry.food.carb, fat: entry.food.fat, serving: entry.food.serving, cantidad: entry.qty, tipo
-            });
-          });
-          Storage.guardarComidas(this.fecha, registro);
-          const n = selection.size;
-          overlay.classList.remove('active', 'full');
-          this._render();
-          this._toast(`${n} alimento${n > 1 ? 's' : ''} agregado${n > 1 ? 's' : ''}`);
-        };
       };
 
       resultsDiv.innerHTML = `
