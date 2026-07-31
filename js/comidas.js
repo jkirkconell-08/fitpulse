@@ -232,44 +232,33 @@ const Comidas = {
       </div>
 
       <!-- Resumen calórico -->
-      <div class="cal-summary fade-in">
-        <div class="cal-circle-wrap">
-          <div class="cal-circle" id="cal-circle">
-            <svg viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="8"/>
-              <circle cx="60" cy="60" r="50" fill="none" stroke="${totals.cal > metaCal ? 'var(--danger)' : 'var(--brand)'}" stroke-width="8" stroke-dasharray="${Math.min(314, (totals.cal / metaCal) * 314)} 314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
-            </svg>
-            <div class="cal-circle-text">
-              <span class="cal-num">${totals.cal}</span>
-              <span class="cal-label">/ ${metaCal} kcal</span>
-            </div>
+      <div class="cal-summary fade-in" style="text-align:left;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="font-mono" style="font-size:11px;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;">CONSUMIDAS</div>
+            <div class="font-display" style="font-weight:800;font-size:48px;line-height:.9;">${totals.cal}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="font-mono" style="font-size:11px;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;">${totals.cal > metaCal ? 'EXCEDIDAS' : 'RESTAN'}</div>
+            <div class="font-display" style="font-weight:800;font-size:28px;line-height:1;color:${totals.cal > metaCal ? 'var(--danger)' : 'var(--lime)'};">${Math.abs(metaCal - totals.cal)}</div>
           </div>
         </div>
-        <!-- Macros consumido vs meta -->
-        <div class="macros-row">
-          <div class="macro-item">
-            <div class="macro-bar prot"><div style="width:${Math.min(100,(totals.prot/metaProt)*100)}%"></div></div>
-            <span class="macro-val">${totals.prot}g</span>
-            <span class="macro-meta">/ ${metaProt}g</span>
-            <span class="macro-lbl">Proteína</span>
-          </div>
-          <div class="macro-item">
-            <div class="macro-bar carb"><div style="width:${Math.min(100,(totals.carb/metaCarb)*100)}%"></div></div>
-            <span class="macro-val">${totals.carb}g</span>
-            <span class="macro-meta">/ ${metaCarb}g</span>
-            <span class="macro-lbl">Carbos</span>
-          </div>
-          <div class="macro-item">
-            <div class="macro-bar fatt"><div style="width:${Math.min(100,(totals.fat/metaFat)*100)}%"></div></div>
-            <span class="macro-val">${totals.fat}g</span>
-            <span class="macro-meta">/ ${metaFat}g</span>
-            <span class="macro-lbl">Grasas</span>
-          </div>
+        <div style="height:10px;border-radius:999px;background:var(--bg-input);overflow:hidden;margin-bottom:18px;">
+          <div style="width:${Math.min(100,(totals.cal/metaCal)*100)}%;height:100%;border-radius:999px;background:linear-gradient(90deg,#7C3AED,var(--lime));"></div>
         </div>
-        <div class="cal-remaining ${totals.cal > metaCal ? 'over' : ''}">
-          ${totals.cal > metaCal
-            ? `Excedido por <strong>${totals.cal - metaCal} kcal</strong>`
-            : `Restantes: <strong>${metaCal - totals.cal} kcal</strong>`}
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="font-mono" style="font-size:10px;color:var(--text-muted);">PROT</span><span class="font-mono" style="font-size:10px;font-weight:700;">${totals.prot}g</span></div>
+            <div style="height:5px;border-radius:999px;background:var(--bg-input);"><div style="width:${Math.min(100,(totals.prot/metaProt)*100)}%;height:100%;border-radius:999px;background:var(--lime);"></div></div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="font-mono" style="font-size:10px;color:var(--text-muted);">CARB</span><span class="font-mono" style="font-size:10px;font-weight:700;">${totals.carb}g</span></div>
+            <div style="height:5px;border-radius:999px;background:var(--bg-input);"><div style="width:${Math.min(100,(totals.carb/metaCarb)*100)}%;height:100%;border-radius:999px;background:#A78BFA;"></div></div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="font-mono" style="font-size:10px;color:var(--text-muted);">GRAS</span><span class="font-mono" style="font-size:10px;font-weight:700;">${totals.fat}g</span></div>
+            <div style="height:5px;border-radius:999px;background:var(--bg-input);"><div style="width:${Math.min(100,(totals.fat/metaFat)*100)}%;height:100%;border-radius:999px;background:var(--amber);"></div></div>
+          </div>
         </div>
       </div>
 
@@ -365,7 +354,14 @@ const Comidas = {
     if (!container) return;
 
     const items = registro.comidas || [];
-    const currentType = this.fecha === Storage.today() ? this._autoMealType() : null;
+    const isToday = this.fecha === Storage.today();
+    const currentType = isToday ? this._autoMealType() : null;
+
+    // Solo la comida "en curso" (franja horaria actual) queda abierta; el resto se colapsa.
+    if (!this._expandedMeals || this._expandedMealsFecha !== this.fecha) {
+      this._expandedMeals = new Set(isToday ? [currentType] : MEAL_TYPES.map(m => m.id));
+      this._expandedMealsFecha = this.fecha;
+    }
 
     // Group by meal type
     const groups = {};
@@ -391,30 +387,35 @@ const Comidas = {
       }
 
       const mealCal = Math.round(mealItems.reduce((s, i) => s + (i.cal * i.cantidad), 0));
+      const expanded = this._expandedMeals.has(meal.id);
 
       html += `
         <div class="meal-group fade-in">
-          <div class="meal-group-header">
+          <div class="meal-group-header" data-toggle-meal="${meal.id}" style="cursor:pointer;">
             <span class="meal-group-icon"><i data-lucide="${meal.icon}" style="width:18px;height:18px;vertical-align:middle;"></i></span>
             <span class="meal-group-name">${meal.name}</span>
             <span class="meal-group-cal">${mealCal} kcal</span>
+            <i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--text-dim);margin-left:6px;transform:rotate(${expanded ? 180 : 0}deg);transition:transform .2s;"></i>
           </div>
-          <div class="meal-group-items">
       `;
 
-      mealItems.forEach(item => {
-        html += `
-          <div class="meal-item" data-id="${item.id}" style="cursor:pointer;">
-            <div class="meal-item-info">
-              <div class="meal-item-name">${item.nombre}</div>
-              <div class="meal-item-detail">${item.cantidad > 1 ? item.cantidad + 'x ' : ''}${item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
+      if (expanded) {
+        html += `<div class="meal-group-items">`;
+        mealItems.forEach(item => {
+          html += `
+            <div class="meal-item" data-id="${item.id}" style="cursor:pointer;">
+              <div class="meal-item-info">
+                <div class="meal-item-name">${item.nombre}</div>
+                <div class="meal-item-detail">${item.cantidad > 1 ? item.cantidad + 'x ' : ''}${item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
+              </div>
+              <button class="meal-item-del" data-id="${item.id}" title="Eliminar"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
             </div>
-            <button class="meal-item-del" data-id="${item.id}" title="Eliminar"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
-          </div>
-        `;
-      });
+          `;
+        });
+        html += `</div>`;
+      }
 
-      html += `</div></div>`;
+      html += `</div>`;
     });
 
     if (!html) {
@@ -427,8 +428,17 @@ const Comidas = {
       row.addEventListener('click', () => this._showFoodSearch());
     });
 
+    container.querySelectorAll('[data-toggle-meal]').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = row.dataset.toggleMeal;
+        if (this._expandedMeals.has(id)) this._expandedMeals.delete(id);
+        else this._expandedMeals.add(id);
+        this._renderMealsList(registro);
+      });
+    });
+
     // Delete buttons
-    Icons.init();
+    Icons.init(container);
     container.querySelectorAll('.meal-item-del').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();

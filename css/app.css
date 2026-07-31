@@ -1348,98 +1348,6 @@ h1, h2, h3, .font-display {
   text-align: center;
 }
 
-.cal-circle-wrap {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.cal-circle {
-  position: relative;
-  width: 130px;
-  height: 130px;
-}
-
-.cal-circle svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(0deg);
-}
-
-.cal-circle-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.cal-num {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1;
-}
-
-.cal-label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.macros-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.macro-item {
-  text-align: center;
-}
-
-.macro-bar {
-  height: 6px;
-  background: var(--bg-input);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.macro-bar > div {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.macro-bar.prot > div { background: #3b82f6; }
-.macro-bar.carb > div { background: #f59e0b; }
-.macro-bar.fatt > div { background: #ef4444; }
-
-.macro-val {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.macro-meta {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-top: -2px;
-}
-
-.macro-lbl {
-  display: block;
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
 /* ── Date Navigator ── */
 /* ═══════════════════════════════════════════
    DATE NAVIGATOR — Premium pill design
@@ -1554,16 +1462,6 @@ h1, h2, h3, .font-display {
   color-scheme: dark;
 }
 html.light .date-picker-hidden { color-scheme: light; }
-
-.cal-remaining {
-  font-size: 0.85rem;
-  color: var(--green);
-  font-weight: 600;
-}
-
-.cal-remaining.over {
-  color: var(--danger);
-}
 
 /* ---------- Comidas: Meal Groups ---------- */
 .meal-group {
@@ -1731,28 +1629,6 @@ html.light .date-picker-hidden { color-scheme: light; }
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-top: 2px;
-}
-
-.food-result-add {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid var(--green);
-  background: none;
-  color: var(--green);
-  font-size: 1.2rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.food-result-add:hover {
-  background: var(--green);
-  color: #fff;
 }
 
 /* ---------- Config select ---------- */

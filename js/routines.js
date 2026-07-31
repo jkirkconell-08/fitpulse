@@ -174,7 +174,7 @@ const Routines = {
             <div style="font-weight:700;font-size:0.9rem;">${s.routineName}</div>
             <div class="font-mono" style="font-size:11px;color:var(--text-muted);margin-top:2px;">${DIAS_SEMANA[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} · ${totalSets} series</div>
           </div>
-          <div class="font-display" style="font-weight:800;font-size:20px;color:var(--lime);">${Math.round(vol).toLocaleString()}<span style="font-size:11px;color:var(--text-muted);"> kg</span></div>
+          <div class="font-display" style="font-weight:800;font-size:20px;color:var(--lime);">${this._fmtVol(vol)}</div>
         </div>`;
     }).join('');
   },
@@ -190,26 +190,42 @@ const Routines = {
     if (!container) return;
     const all = this.getAll();
 
+    if (all.length === 0) {
+      container.innerHTML = `
+        <div class="hero-card" style="background:var(--bg-card);border-color:var(--border);text-align:center;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--lime-soft);color:var(--lime);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <i data-lucide="dumbbell" style="width:24px;height:24px;"></i>
+          </div>
+          <div class="font-display" style="font-size:22px;line-height:1.1;margin-bottom:6px;">Aún no tienes rutinas</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Crea una rutina de gym (por ejemplo, de 3 o 4 días) para empezar.</div>
+          <button id="btn-new-routine" class="btn-lime" style="width:100%;height:52px;border:none;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;">
+            <i data-lucide="plus" style="width:18px;height:18px;"></i>Crear rutina
+          </button>
+        </div>`;
+      document.getElementById('btn-new-routine').addEventListener('click', () => this.openEditor(null));
+      Icons.init(container);
+      return;
+    }
+
+    const rutinaHoy = this.getTodayRoutine();
+
     container.innerHTML = `
-      <div class="section-header" style="margin-top:0">
-        <h2>Mis Rutinas</h2>
-        <button class="btn btn-primary" id="btn-new-routine" style="padding:8px 16px;font-size:0.85rem;">+ Nueva</button>
+      ${rutinaHoy ? this._heroCard(rutinaHoy, all) : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 4px 12px;">
+        <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Mi programa · ${all.length} rutina${all.length === 1 ? '' : 's'}</span>
+        <button id="btn-new-routine" style="width:34px;height:34px;border-radius:11px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="plus" style="width:17px;height:17px;"></i>
+        </button>
       </div>
-      ${all.length === 0
-        ? `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
-             <div style="margin-bottom:12px;opacity:0.5;"><i data-lucide="dumbbell" style="width:48px;height:48px;"></i></div>
-             <div style="font-weight:700;margin-bottom:6px;">Sin rutinas</div>
-             <div style="font-size:0.85rem;">Pulsa + Nueva para crear tu primera rutina</div>
-           </div>`
-        : `<div class="workout-categories" id="routines-list">
-             ${all.map(r => this._routineCard(r)).join('')}
-           </div>`
-      }
+      <div style="display:flex;flex-direction:column;gap:8px;" id="routines-list">
+        ${all.map(r => this._routineRow(r)).join('')}
+      </div>
     `;
 
     document.getElementById('btn-new-routine').addEventListener('click', () => this.openEditor(null));
+    document.getElementById('btn-start-today')?.addEventListener('click', () => this.startSession(rutinaHoy.id));
 
-    Icons.init();
+    Icons.init(container);
     container.querySelectorAll('.routine-edit-btn').forEach(btn => {
       btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); this.openEditor(btn.dataset.id); });
     });
@@ -223,50 +239,73 @@ const Routines = {
         }
       });
     });
-    container.querySelectorAll('.workout-cat-card[data-id]').forEach(card => {
-      card.addEventListener('click', () => this.openDetail(card.dataset.id));
+    container.querySelectorAll('.routine-row[data-id]').forEach(row => {
+      row.addEventListener('click', () => this.openDetail(row.dataset.id));
     });
   },
 
-  _routineCard(r) {
+  _lastLabel(r) {
+    const last = this.getLastSession(r.id);
+    if (!last) return 'Sin sesiones aún';
+    const vol = this.calcVolume(last);
+    const d = new Date(last.endedAt || last.startedAt);
+    return DIAS_SEMANA[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) +
+           (vol > 0 ? ' · ' + this._fmtVol(vol) : '');
+  },
+
+  _fmtVol(vol) {
+    return (vol >= 1000 ? (vol/1000).toFixed(1) + 'k' : Math.round(vol).toLocaleString()) + ' lbs';
+  },
+
+  _heroCard(r, all) {
+    const totalSeries = (r.exercises || []).reduce((s, e) => s + (parseInt(e.sets) || 0), 0);
     const last = this.getLastSession(r.id);
     const vol  = last ? this.calcVolume(last) : 0;
-    const isToday = this.getTodayRoutine()?.id === r.id;
-    const lastLabel = last
-      ? (() => {
-          const d = new Date(last.endedAt || last.startedAt);
-          return DIAS_SEMANA[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1) +
-                 (vol > 0 ? ' · ' + Math.round(vol).toLocaleString() + ' kg' : '');
-        })()
-      : 'Sin sesiones aún';
+    const idx  = all.findIndex(x => x.id === r.id);
+    const dayLabel = all.length > 1 ? `HOY · RUTINA ${idx + 1} DE ${all.length}` : 'HOY';
     return `
-      <div class="workout-cat-card ${r.gradient}" data-id="${r.id}" style="cursor:pointer;">
-        <div class="cat-bg"></div>
-        ${isToday ? `<span class="font-mono" style="position:absolute;top:10px;left:10px;z-index:3;background:var(--lime);color:#08080A;font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:999px;">HOY</span>` : ''}
-        <div class="cat-body">
-          <div class="cat-icon-wrap" style="margin-bottom:8px;opacity:0.9;">
-            <i data-lucide="${r.icon}" style="width:28px;height:28px;"></i>
-          </div>
-          <div class="cat-name" style="font-size:1rem;font-weight:800;margin-bottom:4px;">${r.name}</div>
-          <div class="cat-count">
-            <i data-lucide="layers" style="width:13px;height:13px;margin-right:3px;opacity:0.7;"></i>
-            ${r.exercises.length} ejercicios
-          </div>
-          <div style="font-size:0.68rem;color:rgba(255,255,255,0.65);margin-top:4px;display:flex;align-items:center;gap:4px;">
-            <i data-lucide="clock" style="width:11px;height:11px;"></i>
-            ${lastLabel}
-          </div>
+      <div class="hero-card" style="background:linear-gradient(150deg,#1B1626,var(--bg-card) 65%);border-color:#2E2640;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span class="hero-streak-dot" style="background:var(--lime);"></span>
+          <span class="font-mono" style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--lime);">${dayLabel}</span>
         </div>
-        <div style="position:absolute;top:10px;right:10px;z-index:3;display:flex;gap:6px;">
-          <button class="routine-edit-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="routine-del-btn" data-id="${r.id}"
-            style="background:rgba(0,0,0,0.35);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-          </button>
+        <div class="font-display" style="font-size:30px;line-height:1.05;margin-bottom:14px;">${r.name}</div>
+        <div style="display:flex;gap:20px;margin-bottom:18px;">
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">EJERCICIOS</div><div class="font-display" style="font-weight:800;font-size:20px;">${(r.exercises || []).length}</div></div>
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">SERIES</div><div class="font-display" style="font-weight:800;font-size:20px;">${totalSeries}</div></div>
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">ÚLTIMO VOL.</div><div class="font-display" style="font-weight:800;font-size:20px;">${vol ? this._fmtVol(vol) : '—'}</div></div>
         </div>
+        <button id="btn-start-today" class="btn-lime" style="width:100%;height:56px;border:none;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:800;">
+          <i data-lucide="play" style="width:19px;height:19px;"></i>Empezar sesión
+        </button>
+      </div>
+    `;
+  },
+
+  _routineRow(r) {
+    const doneToday = this.getSessions(r.id).some(s => {
+      const d = new Date(s.endedAt || s.startedAt);
+      const f = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return f === Storage.today();
+    });
+    return `
+      <div class="routine-row" data-id="${r.id}" style="display:flex;align-items:center;gap:13px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:15px 16px;cursor:pointer;">
+        <span style="flex:none;width:34px;height:34px;border-radius:11px;background:${doneToday ? 'rgba(48,209,88,.14)' : 'var(--bg-input)'};display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="${doneToday ? 'check' : r.icon}" style="width:17px;height:17px;color:${doneToday ? '#30D158' : 'var(--text-secondary)'};"></i>
+        </span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:700;">${r.name}</div>
+          <div class="font-mono" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${(r.exercises || []).length} ejercicios · ${this._lastLabel(r)}</div>
+        </div>
+        <button class="routine-edit-btn" data-id="${r.id}"
+          style="flex:none;background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);width:32px;height:32px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="routine-del-btn" data-id="${r.id}"
+          style="flex:none;background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);width:32px;height:32px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </button>
+        <i data-lucide="chevron-right" style="width:19px;height:19px;color:var(--text-dim);flex:none;"></i>
       </div>
     `;
   },
@@ -285,7 +324,7 @@ const Routines = {
       ? (() => {
           const d = new Date(last.endedAt || last.startedAt);
           return `Última sesión: ${DIAS_SEMANA[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}` +
-                 (vol > 0 ? ` · ${Math.round(vol).toLocaleString()} kg` : '');
+                 (vol > 0 ? ` · ${this._fmtVol(vol)}` : '');
         })()
       : null;
 
@@ -356,266 +395,369 @@ const Routines = {
     this._renderSession(session);
   },
 
+  /* Mejor serie histórica de este ejercicio (mismo nombre) en esta rutina — para el "PR" de referencia */
+  _bestSetForExercise(routineId, exName) {
+    let best = null;
+    this.getSessions(routineId).forEach(sess => {
+      (sess.exercises || []).forEach(ex => {
+        if (ex.name !== exName) return;
+        (ex.sets || []).forEach(st => {
+          if (!st.weightDone && !st.repsDone) return;
+          if (!best || (st.weightDone || 0) > best.weight || ((st.weightDone || 0) === best.weight && (st.repsDone || 0) > best.reps)) {
+            best = { weight: st.weightDone || 0, reps: st.repsDone || 0 };
+          }
+        });
+      });
+    });
+    return best;
+  },
+
+  _startElapsedTimer(s) {
+    clearInterval(this._elapsedTimer);
+    const tick = () => {
+      const el = document.getElementById('sess-elapsed');
+      if (!el) return;
+      const ms = Date.now() - s.startedAt;
+      const mins = Math.floor(ms / 60000);
+      const secs = Math.floor((ms % 60000) / 1000);
+      el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    };
+    tick();
+    this._elapsedTimer = setInterval(tick, 1000);
+  },
+
+  _stopElapsedTimer() {
+    clearInterval(this._elapsedTimer);
+    this._elapsedTimer = null;
+  },
+
+  /* ---- Sesión en vivo — el núcleo de Entreno ---- */
   _renderSession(s) {
     const overlay = document.getElementById('routine-overlay');
     if (!overlay) return;
 
     if (s.currentEx >= s.exercises.length) {
+      this._stopElapsedTimer();
       this._showSessionSummary(s);
       return;
     }
 
-    const ex       = s.exercises[s.currentEx];
-    const setNum   = s.currentSet + 1;
+    const ex        = s.exercises[s.currentEx];
     const totalSets = ex.targetSets;
-    const exNum    = s.currentEx + 1;
-    const totalEx  = s.exercises.length;
-    const progress = Math.round((s.currentEx / totalEx) * 100);
+    const exNum     = s.currentEx + 1;
+    const totalEx   = s.exercises.length;
     const targetMin = parseInt(ex.targetReps.split('-')[0]) || 10;
-    const lastSet = ex.sets[ex.sets.length - 1];
+    const lastSet   = ex.sets[ex.sets.length - 1];
     const weightStart = lastSet?.weightDone ?? (ex.weight || 0);
+    const best      = this._bestSetForExercise(s.routineId, ex.name);
+    const volSoFar  = this.calcVolume({ exercises: s.exercises });
+    const nextEx    = s.exercises[s.currentEx + 1];
 
     overlay.classList.remove('full');
     overlay.classList.add('active');
+
+    const segs = Array.from({ length: totalEx }, (_, i) =>
+      `<span style="flex:1;height:4px;border-radius:999px;background:${i < exNum ? 'var(--lime)' : 'var(--border)'};display:block;"></span>`
+    ).join('');
+
+    const setsRows = Array.from({ length: totalSets }, (_, i) => {
+      if (i < s.currentSet) {
+        const st = ex.sets[i];
+        const skipped = st?.status === 'skipped';
+        return `<div style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;align-items:center;padding:12px 16px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:15px;">
+          <span style="color:var(--text-muted);">${i + 1}</span>
+          <span style="text-align:right;font-weight:700;${skipped ? 'color:var(--text-dim);' : ''}">${skipped ? '—' : st.weightDone}</span>
+          <span style="text-align:right;font-weight:700;${skipped ? 'color:var(--text-dim);' : ''}">${skipped ? '—' : st.repsDone}</span>
+          <span style="text-align:right;"><i data-lucide="${skipped ? 'minus' : 'check'}" style="width:16px;height:16px;color:${skipped ? 'var(--text-dim)' : '#30D158'};"></i></span>
+        </div>`;
+      }
+      if (i === s.currentSet) return `<div id="active-set-row"></div>`;
+      return `<div style="display:grid;grid-template-columns:46px 1fr;gap:6px;padding:12px 16px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:13px;color:var(--text-dim);"><span>${i + 1}</span><span style="text-align:right;">${weightStart || '—'} × ${targetMin} previsto</span></div>`;
+    }).join('');
+
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:420px;text-align:center;">
-
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <span style="font-size:0.8rem;font-weight:700;color:var(--text-muted);">EJERCICIO ${exNum}/${totalEx}</span>
-          <button id="sess-exit"
-            style="background:none;border:1px solid var(--border);color:var(--text-muted);font-size:0.85rem;font-weight:700;cursor:pointer;padding:4px 10px;border-radius:8px;font-family:inherit;">Terminar</button>
-        </div>
-
-        <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px;">
-          <div style="height:4px;background:linear-gradient(90deg,#7C3AED,#A78BFA);border-radius:2px;width:${progress}%;transition:width 0.4s;"></div>
-        </div>
-
-        <div style="font-size:0.72rem;font-weight:700;color:#A78BFA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Ejercicio actual</div>
-        <h2 style="font-size:1.5rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px;">${ex.name}</h2>
-        <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:4px;">Meta: ${ex.targetReps} reps</div>
-        ${ex.weight > 0 ? `<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);color:#A78BFA;font-size:0.8rem;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:16px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6.5 6.5h11M6.5 17.5h11M12 6.5v11"/><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg> ${ex.weight} lbs</div>` : '<div style="margin-bottom:16px;"></div>'}
-
-        <div style="display:flex;justify-content:center;gap:8px;margin-bottom:20px;">
-          ${Array.from({length: totalSets}, (_, i) => {
-            const st = ex.sets[i];
-            const color = !st ? 'var(--border)'
-              : st.status === 'done'    ? '#30D158'
-              : st.status === 'partial' ? '#FFD60A'
-              : '#FF453A';
-            const label = i === s.currentSet && !st ? '→' : (st ? st.repsDone : i + 1);
-            return `<div style="width:38px;height:38px;border-radius:50%;border:2px solid ${color};background:${st ? color + '22' : 'transparent'};display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:800;color:${color};">${label}</div>`;
-          }).join('')}
-        </div>
-
-        <div style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:20px;padding:20px;margin-bottom:20px;">
-          <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);margin-bottom:14px;">Serie ${setNum} de ${totalSets}</div>
-
-          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
-            <button id="weight-dec" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.1rem;font-weight:700;cursor:pointer;font-family:inherit;">−</button>
-            <div style="text-align:center;">
-              <div id="weight-value" class="font-display" style="font-size:28px;font-weight:800;min-width:70px;">${weightStart}</div>
-              <div class="font-mono" style="font-size:9px;color:var(--text-muted);">LBS</div>
+      <div class="overlay-content" style="max-width:440px;text-align:left;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:92vh;">
+        <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);flex:none;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button id="sess-exit" style="width:38px;height:38px;flex:none;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-down" style="width:18px;height:18px;"></i></button>
+            <div style="flex:1;min-width:0;">
+              <div class="font-mono" style="font-size:10px;letter-spacing:.08em;color:var(--lime);">EN CURSO</div>
+              <div class="font-display" style="font-weight:800;font-size:19px;line-height:1.1;">${s.routineName}</div>
             </div>
-            <button id="weight-inc" style="width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.1rem;font-weight:700;cursor:pointer;font-family:inherit;">+</button>
+            <div style="flex:none;text-align:right;">
+              <div id="sess-elapsed" class="font-mono" style="font-weight:700;font-size:18px;color:var(--lime);">00:00</div>
+              <div class="font-mono" style="font-size:10px;color:var(--text-muted);">${this._fmtVol(volSoFar)}</div>
+            </div>
           </div>
-
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">¿Cuántas repeticiones hiciste?</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
-            <button id="reps-dec"
-              style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.6rem;font-weight:700;cursor:pointer;font-family:inherit;">−</button>
-            <div id="reps-value"
-              style="font-size:3rem;font-weight:900;letter-spacing:-0.06em;min-width:70px;text-align:center;">${targetMin}</div>
-            <button id="reps-inc"
-              style="width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.6rem;font-weight:700;cursor:pointer;font-family:inherit;">+</button>
-          </div>
-
-          <div style="display:flex;gap:8px;">
-            <button id="sess-skip"
-              style="flex:1;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;">Saltar</button>
-            <button id="sess-complete"
-              style="flex:2;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#30D158,#34C759);color:#fff;font-family:inherit;font-size:0.95rem;font-weight:800;cursor:pointer;">Completada</button>
-          </div>
+          <div style="display:flex;gap:4px;margin-top:14px;">${segs}</div>
         </div>
 
-        <div style="font-size:0.72rem;color:var(--text-muted);font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Siguiente</div>
-        <div style="text-align:left;font-size:0.85rem;color:var(--text-secondary);font-weight:600;">
-          ${s.exercises[s.currentEx + 1] ? `${s.currentEx + 2}. ${s.exercises[s.currentEx + 1].name}` : '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Fin de la rutina'}
+        <div style="flex:1;overflow-y:auto;padding:16px 20px 0;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+            <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);">EJERCICIO ${exNum} DE ${totalEx}</span>
+            ${best ? `<span class="font-mono" style="font-size:11px;color:var(--text-muted);">PR ${best.weight} × ${best.reps}</span>` : ''}
+          </div>
+          <h2 class="font-display" style="font-size:26px;line-height:1.05;margin-bottom:14px;">${ex.name}</h2>
+
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;padding:11px 16px;background:var(--bg-input);font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);"><span>SERIE</span><span style="text-align:right;">LBS</span><span style="text-align:right;">REPS</span><span style="text-align:right;">OK</span></div>
+            ${setsRows}
+          </div>
+
+          <div id="rest-or-controls"></div>
+
+          ${nextEx ? `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:14px 16px;margin:14px 0;">
+            <span style="flex:none;width:32px;height:32px;border-radius:10px;background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-muted);">${exNum + 1}</span>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text-secondary);">${nextEx.name}</div></div>
+            <span class="font-mono" style="font-size:12px;color:var(--text-muted);">${nextEx.targetSets} × ${nextEx.targetReps}</span>
+          </div>` : `<div style="height:14px;"></div>`}
+        </div>
+
+        <div style="flex:none;padding:14px 20px 20px;display:flex;gap:10px;border-top:1px solid var(--border);">
+          <button id="sess-list-toggle" style="flex:none;width:52px;height:52px;border-radius:16px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="list" style="width:19px;height:19px;"></i></button>
+          <button id="sess-skip-exercise" style="flex:1;height:52px;border:none;border-radius:16px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;">Siguiente ejercicio</button>
         </div>
       </div>
     `;
 
-    let repsVal = targetMin;
-    let weightVal = weightStart;
-    const repsEl = document.getElementById('reps-value');
-    const weightEl = document.getElementById('weight-value');
+    Icons.init(overlay);
+    this._startElapsedTimer(s);
 
-    document.getElementById('reps-dec').onclick = () => { repsVal = Math.max(0, repsVal - 1); repsEl.textContent = repsVal; };
-    document.getElementById('reps-inc').onclick = () => { repsVal++; repsEl.textContent = repsVal; };
-    document.getElementById('weight-dec').onclick = () => { weightVal = Math.max(0, weightVal - 2.5); weightEl.textContent = weightVal; };
-    document.getElementById('weight-inc').onclick = () => { weightVal += 2.5; weightEl.textContent = weightVal; };
-
-    document.getElementById('sess-complete').onclick = () => {
-      ex.sets.push({ repsDone: repsVal, weightDone: weightVal, status: repsVal >= targetMin ? 'done' : 'partial' });
-      this._advanceSession(s);
-    };
-    document.getElementById('sess-skip').onclick = () => {
-      ex.sets.push({ repsDone: 0, weightDone: weightVal, status: 'skipped' });
-      this._advanceSession(s);
-    };
     document.getElementById('sess-exit').onclick = () => {
-      if (confirm('¿Terminar la sesión ahora?')) this._showSessionSummary(s);
+      if (confirm('¿Terminar la sesión ahora?')) { this._stopElapsedTimer(); this._showSessionSummary(s); }
     };
-  },
-
-  _advanceSession(s) {
-    // Haptic feedback — short pulse on set done
-    if (navigator.vibrate) navigator.vibrate(60);
-    const ex = s.exercises[s.currentEx];
-    if (ex.sets.length >= ex.targetSets) {
-      // Longer vibration when finishing an exercise
+    document.getElementById('sess-skip-exercise').onclick = () => {
+      while (ex.sets.length < totalSets) ex.sets.push({ repsDone: 0, weightDone: weightStart, status: 'skipped' });
       if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
-      s._lastDirection = 'forward';
+      s._resting = null;
       s.currentEx++;
       s.currentSet = 0;
       this._renderSession(s);
-      // Apply slide-in animation to overlay content
+      requestAnimationFrame(() => {
+        const el = document.querySelector('#routine-overlay .overlay-content');
+        if (el) { el.classList.add('ex-slide-in'); setTimeout(() => el.classList.remove('ex-slide-in'), 350); }
+      });
+    };
+    document.getElementById('sess-list-toggle').onclick = () => this._toggleExerciseList(s);
+
+    this._renderActiveSetPanel(s, ex, weightStart, targetMin);
+  },
+
+  _renderActiveSetPanel(s, ex, weightStart, targetMin) {
+    const rowEl = document.getElementById('active-set-row');
+    const ctrlEl = document.getElementById('rest-or-controls');
+    if (!rowEl || !ctrlEl) return;
+
+    if (s._resting) {
+      rowEl.outerHTML = `<div id="active-set-row" style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;align-items:center;padding:12px 16px;border-top:1px solid var(--border);background:rgba(200,255,77,.05);">
+        <span class="font-mono" style="font-size:15px;font-weight:700;color:var(--lime);">${s.currentSet + 1}</span>
+        <span style="text-align:right;color:var(--text-muted);font-family:var(--font-mono);">${s._resting.nextWeight}</span>
+        <span style="text-align:right;color:var(--text-muted);font-family:var(--font-mono);">${targetMin}</span>
+        <span></span>
+      </div>`;
+      this._renderRestPanel(ctrlEl, s);
+      return;
+    }
+
+    let weightVal = weightStart;
+    let repsVal = targetMin;
+
+    rowEl.outerHTML = `
+      <div id="active-set-row" style="padding:14px 16px;border-top:1px solid var(--border);background:rgba(200,255,77,.05);">
+        <div style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;align-items:center;">
+          <span class="font-mono" style="font-size:15px;font-weight:700;color:var(--lime);">${s.currentSet + 1}</span>
+          <div id="active-weight-box" style="height:52px;border-radius:13px;border:1.5px solid var(--lime);background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px;">${weightVal}</div>
+          <div id="active-reps-box" style="height:52px;border-radius:13px;border:1.5px solid var(--border-strong);background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px;">${repsVal}</div>
+          <button id="active-confirm" style="height:52px;border-radius:13px;border:none;background:var(--lime);color:#08080A;cursor:pointer;display:flex;align-items:center;justify-content:center;animation:fp-glow 2.4s infinite;"><i data-lucide="check" style="width:20px;height:20px;"></i></button>
+        </div>
+      </div>
+    `;
+
+    ctrlEl.innerHTML = `
+      <div style="display:flex;gap:7px;margin:12px 0;">
+        <button class="set-chip" data-adjust="w-" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;background:var(--bg-input);border:1px solid var(--border-strong);font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;">−5</button>
+        <button class="set-chip" data-adjust="w+" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;background:var(--bg-input);border:1px solid var(--border-strong);font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;">+5</button>
+        <button class="set-chip" data-adjust="r-" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;background:var(--bg-input);border:1px solid var(--border-strong);font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;">−1 rep</button>
+        <button class="set-chip" data-adjust="r+" style="flex:1;text-align:center;padding:9px 0;border-radius:11px;background:var(--bg-input);border:1px solid var(--border-strong);font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);cursor:pointer;">+1 rep</button>
+      </div>
+      <button id="active-skip-set" style="width:100%;background:none;border:none;color:var(--text-muted);font-family:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;padding:4px 0 10px;">Saltar esta serie</button>
+    `;
+
+    const wBox = document.getElementById('active-weight-box');
+    const rBox = document.getElementById('active-reps-box');
+    ctrlEl.querySelectorAll('.set-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const a = btn.dataset.adjust;
+        if (a === 'w-') weightVal = Math.max(0, weightVal - 5);
+        if (a === 'w+') weightVal += 5;
+        if (a === 'r-') repsVal = Math.max(0, repsVal - 1);
+        if (a === 'r+') repsVal++;
+        wBox.textContent = weightVal;
+        rBox.textContent = repsVal;
+      });
+    });
+
+    document.getElementById('active-confirm').onclick = () => {
+      ex.sets.push({ repsDone: repsVal, weightDone: weightVal, status: repsVal >= targetMin ? 'done' : 'partial' });
+      this._advanceSession(s, weightVal);
+    };
+    document.getElementById('active-skip-set').onclick = () => {
+      ex.sets.push({ repsDone: 0, weightDone: weightVal, status: 'skipped' });
+      this._advanceSession(s, weightVal);
+    };
+  },
+
+  _advanceSession(s, weightDone) {
+    if (navigator.vibrate) navigator.vibrate(60);
+    const ex = s.exercises[s.currentEx];
+    if (ex.sets.length >= ex.targetSets) {
+      if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
+      s._resting = null;
+      s.currentEx++;
+      s.currentSet = 0;
+      this._renderSession(s);
       requestAnimationFrame(() => {
         const el = document.querySelector('#routine-overlay .overlay-content');
         if (el) { el.classList.add('ex-slide-in'); setTimeout(() => el.classList.remove('ex-slide-in'), 350); }
       });
     } else {
       s.currentSet++;
-      this._showRestTimer(ex.restSeconds, () => this._renderSession(s));
+      const restSeconds = ex.restSeconds || 60;
+      s._resting = { remaining: restSeconds, total: restSeconds, nextWeight: weightDone };
+      this._renderSession(s);
     }
   },
 
-  _showRestTimer(seconds, onDone) {
-    const overlay = document.getElementById('routine-overlay');
-    let remaining = seconds;
-    let timer;
-
-    const render = () => {
-      const pct = ((seconds - remaining) / seconds) * 283;
-      overlay.innerHTML = `
-        <div class="overlay-content" style="max-width:320px;text-align:center;">
-          <div style="font-size:0.75rem;font-weight:700;color:#A78BFA;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:24px;">⏱ Descanso</div>
-
-          <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:28px;">
-            <svg viewBox="0 0 100 100" style="width:160px;height:160px;transform:rotate(-90deg);">
-              <circle cx="50" cy="50" r="44" fill="none" stroke="var(--border)" stroke-width="6"/>
-              <circle cx="50" cy="50" r="44" fill="none" stroke="#7C3AED" stroke-width="6"
-                stroke-dasharray="276" stroke-dashoffset="${276 - (pct * 276 / 283)}" stroke-linecap="round"/>
-            </svg>
-            <div style="position:absolute;font-size:2.8rem;font-weight:900;letter-spacing:-0.06em;">
-              ${remaining}<span style="font-size:1rem;color:var(--text-muted);">s</span>
-            </div>
+  /* Panel de descanso EMBEBIDO en la propia pantalla de sesión (no una pantalla aparte) */
+  _renderRestPanel(ctrlEl, s) {
+    clearInterval(this._restTimer);
+    const state = s._resting;
+    const draw = () => {
+      const pct = (state.total - state.remaining) / state.total;
+      ctrlEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.32);border-radius:20px;padding:16px 18px;margin:12px 0;">
+          <div style="position:relative;width:52px;height:52px;flex:none;">
+            <svg viewBox="0 0 52 52" style="width:52px;height:52px;transform:rotate(-90deg);display:block;"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" stroke-width="5"/><circle cx="26" cy="26" r="22" fill="none" stroke="#A78BFA" stroke-width="5" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="${138 - pct * 138}"/></svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:13px;">${state.remaining}</div>
           </div>
-
-          <div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:24px;">Prepárate para la siguiente serie</div>
-          <button id="rest-skip-btn" class="btn btn-secondary btn-full">Saltar descanso →</button>
+          <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:700;">Descanso</div><div class="font-mono" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Siguiente: serie ${s.currentSet + 1} · ${state.nextWeight} lbs</div></div>
+          <button id="rest-skip" style="flex:none;padding:0 15px;height:40px;border-radius:12px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;">Saltar</button>
         </div>
       `;
-      Icons.init();
-      document.getElementById('rest-skip-btn').onclick = () => { clearInterval(timer); onDone(); };
+      document.getElementById('rest-skip').onclick = () => { clearInterval(this._restTimer); s._resting = null; this._renderSession(s); };
     };
-
-    render();
-    timer = setInterval(() => {
-      remaining--;
-      if (remaining <= 0) { clearInterval(timer); onDone(); }
-      else render();
+    draw();
+    this._restTimer = setInterval(() => {
+      state.remaining--;
+      if (state.remaining <= 0) { clearInterval(this._restTimer); s._resting = null; this._renderSession(s); }
+      else draw();
     }, 1000);
   },
 
+  /* Lista de ejercicios de la sesión (botón "list" de la barra inferior) */
+  _toggleExerciseList(s) {
+    const scrollBody = document.querySelector('#routine-overlay .overlay-content > div[style*="overflow-y:auto"]');
+    if (!scrollBody) return;
+    if (scrollBody.dataset.mode === 'list') { this._renderSession(s); return; }
+    scrollBody.dataset.mode = 'list';
+    scrollBody.innerHTML = `
+      <button id="ex-list-back" style="background:none;border:none;color:var(--text-muted);display:flex;align-items:center;gap:6px;font-size:0.82rem;font-weight:700;padding:12px 0;cursor:pointer;"><i data-lucide="chevron-left" style="width:16px;height:16px;"></i>Volver a la serie activa</button>
+      <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:20px;">
+        ${s.exercises.map((ex2, i) => {
+          const done = i < s.currentEx;
+          const active = i === s.currentEx;
+          return `<div style="display:flex;align-items:center;gap:13px;background:var(--bg-card);border:1px solid ${active ? 'var(--lime)' : 'var(--border)'};border-radius:18px;padding:14px 16px;">
+            <span style="flex:none;width:32px;height:32px;border-radius:10px;background:${done ? 'rgba(48,209,88,.14)' : 'var(--bg-input)'};display:flex;align-items:center;justify-content:center;"><i data-lucide="${done ? 'check' : 'dumbbell'}" style="width:16px;height:16px;color:${done ? '#30D158' : 'var(--text-secondary)'};"></i></span>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;">${ex2.name}</div><div class="font-mono" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${ex2.targetSets} × ${ex2.targetReps}</div></div>
+            ${active ? `<span class="font-mono" style="font-size:10px;font-weight:700;color:var(--lime);">ACTUAL</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+    Icons.init(scrollBody);
+    document.getElementById('ex-list-back').onclick = () => this._renderSession(s);
+  },
+
+  /* ---- Sesión completada ---- */
   _showSessionSummary(s) {
+    this._stopElapsedTimer();
     const overlay = document.getElementById('routine-overlay');
     const duration = Math.max(1, Math.round((Date.now() - s.startedAt) / 60000));
-    let totalSets = 0, totalReps = 0;
+    let totalSets = 0;
+    s.exercises.forEach(ex => { totalSets += ex.sets.length; });
 
-    s.exercises.forEach(ex => {
-      ex.sets.forEach(st => { totalSets++; totalReps += st.repsDone || 0; });
-    });
-
-    // Comparación vs. la sesión anterior de esta misma rutina (antes de guardar esta)
     const volume = this.calcVolume({ exercises: s.exercises });
     const last = this.getLastSession(s.routineId);
     const lastVolume = last ? this.calcVolume(last) : 0;
     const vsAnteriorPct = lastVolume > 0 ? Math.round(((volume - lastVolume) / lastVolume) * 100) : null;
+
+    // Récord personal: mejor serie (peso x reps) de algún ejercicio de esta sesión vs. su histórico
+    let prDetail = null;
+    s.exercises.forEach(ex => {
+      const priorBest = this._bestSetForExercise(s.routineId, ex.name);
+      ex.sets.forEach(st => {
+        if (!st.weightDone || !st.repsDone) return;
+        const beatsIt = !priorBest || st.weightDone > priorBest.weight || (st.weightDone === priorBest.weight && st.repsDone > priorBest.reps);
+        if (beatsIt && (!prDetail || st.weightDone > prDetail.weight)) {
+          prDetail = { name: ex.name, weight: st.weightDone, reps: st.repsDone, priorWeight: priorBest?.weight, priorReps: priorBest?.reps };
+        }
+      });
+    });
+
     const priorSessions = this.getSessions(s.routineId);
-    let isPR = false;
-    if (priorSessions.length > 0) {
-      const maxPriorVolume = Math.max(...priorSessions.map(sess => this.calcVolume(sess)));
-      isPR = volume > maxPriorVolume;
-    }
+    const last6 = priorSessions.slice(0, 5).map(sess => this.calcVolume(sess)).reverse();
+    last6.push(volume);
+    const maxVol = Math.max(...last6, 1);
 
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:400px;text-align:center;">
-        <div style="font-size:3.5rem;margin-bottom:10px;"><svg style="width:56px;height:56px;color:#FFD60A;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 006 6v0a6 6 0 006-6V2z"/></svg></div>
-        <h2 style="font-size:1.5rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px;">¡Sesión completada!</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">${s.routineName}</p>
+      <div class="overlay-content" style="max-width:420px;text-align:center;">
+        <div style="width:76px;height:76px;margin:4px auto 16px;border-radius:26px;background:var(--lime);display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="check" style="width:38px;height:38px;color:#08080A;"></i>
+        </div>
+        <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--lime);margin-bottom:8px;">SESIÓN COMPLETADA</div>
+        <h1 class="font-display" style="margin:0 0 20px;font-size:32px;line-height:1;">${s.routineName}</h1>
 
-        ${isPR
-          ? `<div class="font-mono" style="background:var(--lime-soft);border:1px solid var(--lime);color:var(--lime);font-size:12px;font-weight:700;padding:8px 14px;border-radius:12px;margin-bottom:16px;">🏆 NUEVO RÉCORD DE VOLUMEN</div>`
-          : vsAnteriorPct !== null
-            ? `<div class="font-mono" style="background:var(--bg-input);border:1px solid var(--border);color:${vsAnteriorPct >= 0 ? 'var(--lime)' : 'var(--danger)'};font-size:12px;font-weight:700;padding:8px 14px;border-radius:12px;margin-bottom:16px;">${vsAnteriorPct >= 0 ? '▲' : '▼'} ${Math.abs(vsAnteriorPct)}% vs. sesión anterior</div>`
-            : ''}
+        <div class="stat-tiles" style="text-align:left;margin-bottom:12px;">
+          <div class="stat-tile"><div class="stat-tile-label">DURACIÓN</div><div class="stat-tile-val">${duration}<span style="font-size:15px;color:var(--text-muted);"> min</span></div></div>
+          <div class="stat-tile"><div class="stat-tile-label">VOLUMEN</div><div class="stat-tile-val lime">${this._fmtVol(volume)}</div></div>
+          <div class="stat-tile"><div class="stat-tile-label">SERIES</div><div class="stat-tile-val">${totalSets}</div></div>
+          <div class="stat-tile"><div class="stat-tile-label">VS. ANTERIOR</div><div class="stat-tile-val" style="color:${vsAnteriorPct === null ? 'var(--text-muted)' : vsAnteriorPct >= 0 ? '#30D158' : 'var(--danger)'};">${vsAnteriorPct === null ? '—' : (vsAnteriorPct >= 0 ? '+' : '') + vsAnteriorPct + '%'}</div></div>
+        </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px;">
-          <div style="background:var(--bg-input);border-radius:14px;padding:16px 8px;">
-            <div style="font-size:1.8rem;font-weight:900;">${duration}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">min</div>
-          </div>
-          <div style="background:var(--bg-input);border-radius:14px;padding:16px 8px;">
-            <div style="font-size:1.8rem;font-weight:900;">${totalSets}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">series</div>
-          </div>
-          <div style="background:var(--bg-input);border-radius:14px;padding:16px 8px;">
-            <div style="font-size:1.8rem;font-weight:900;">${totalReps}</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-top:2px;">reps</div>
+        ${prDetail ? `
+        <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.3);border-radius:18px;padding:15px 16px;text-align:left;margin-bottom:12px;">
+          <i data-lucide="trophy" style="width:20px;height:20px;color:#30D158;flex:none;margin-top:1px;"></i>
+          <div><div style="font-size:15.5px;font-weight:700;">Récord personal</div><div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${prDetail.name} ${prDetail.weight} lbs × ${prDetail.reps}${prDetail.priorWeight ? ` — antes ${prDetail.priorWeight} × ${prDetail.priorReps}` : ''}</div></div>
+        </div>` : ''}
+
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:18px;text-align:left;margin-bottom:20px;">
+          <div class="font-mono" style="font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);margin-bottom:14px;">VOLUMEN · ÚLTIMAS ${last6.length} SESIONES</div>
+          <div style="display:flex;align-items:flex-end;gap:9px;height:70px;">
+            ${last6.map((v, i) => {
+              const isLast = i === last6.length - 1;
+              const h = Math.max(6, Math.round((v / maxVol) * 100));
+              return `<div style="flex:1;height:${h}%;border-radius:6px 6px 0 0;background:${isLast ? 'var(--lime)' : '#2E2640'};"></div>`;
+            }).join('')}
           </div>
         </div>
 
-        <div style="text-align:left;display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
-          ${s.exercises.map(ex => {
-            const done  = ex.sets.filter(st => st.status === 'done').length;
-            const skip  = ex.sets.filter(st => st.status === 'skipped').length;
-            const color = ex.sets.length === 0 ? '#636366'
-              : skip === ex.sets.length ? '#FF453A'
-              : done === ex.targetSets   ? '#30D158'
-              : '#FFD60A';
-            const label = ex.sets.length === 0 ? 'SIN HACER'
-              : skip === ex.sets.length ? 'SALTADO'
-              : done === ex.targetSets  ? 'COMPLETO' : 'PARCIAL';
-            return `
-              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-input);border-radius:12px;border-left:3px solid ${color};">
-                <div style="flex:1;">
-                  <div style="font-weight:700;font-size:0.85rem;">${ex.name}</div>
-                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${ex.sets.length > 0 ? ex.sets.map(st => st.repsDone + ' rep').join(' · ') : '—'}</div>
-                </div>
-                <div style="font-size:0.72rem;font-weight:800;color:${color};">${label}</div>
-              </div>`;
-          }).join('')}
-        </div>
-
-        <div style="display:flex;gap:8px;margin-top:0;">
-          <button id="sess-share" class="btn btn-secondary" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Compartir
-          </button>
-          <button id="sess-finish" class="btn btn-primary" style="flex:2;">Cerrar y guardar</button>
+        <div style="display:flex;gap:8px;">
+          <button id="sess-share" style="flex:none;width:56px;height:56px;border-radius:16px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="share-2" style="width:19px;height:19px;"></i></button>
+          <button id="sess-finish" class="btn-lime" style="flex:1;height:56px;border:none;border-radius:16px;cursor:pointer;font-family:var(--font-display);font-weight:800;font-size:18px;">Guardar sesión</button>
         </div>
       </div>
     `;
     overlay.classList.remove('full');
     overlay.classList.add('active');
-    Icons.init();
+    Icons.init(overlay);
 
     document.getElementById('sess-share')?.addEventListener('click', () => {
+      const totalReps = s.exercises.reduce((t, ex) => t + ex.sets.reduce((s2, st) => s2 + (st.repsDone || 0), 0), 0);
       this._shareSession({ routineName: s.routineName, duration, totalSets, totalReps, exercises: s.exercises });
     });
 
     document.getElementById('sess-finish').onclick = () => {
-      // Save completed session to history
       this.saveSession({
         routineId: s.routineId,
         routineName: s.routineName,
@@ -623,7 +765,6 @@ const Routines = {
         endedAt: Date.now(),
         exercises: s.exercises
       });
-      // Auto-mark gym checklist item for today
       try {
         const today = Storage.today();
         const dia = Storage.obtenerDia(today) || { fecha: today, checklist: {}, nota: '', cumplimiento: 0 };
@@ -634,7 +775,7 @@ const Routines = {
           dia.cumplimiento = Math.round((checked / items.length) * 100);
           Storage.guardarDia(today, dia);
         }
-      } catch(e) {}
+      } catch (e) {}
       overlay.classList.remove('active');
       this._render();
     };
