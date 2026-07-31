@@ -16,6 +16,10 @@
 
   navigator.serviceWorker.register('sw.js').then((reg) => {
     const checkForUpdate = () => reg.update().catch(() => {});
+    // Revisa apenas carga la pagina (no solo al volver a la pestaña o cada
+    // 5 min) — asi una version nueva se detecta y aplica en cuanto se abre
+    // la app, en vez de esperar a que la pestaña se reactive.
+    checkForUpdate();
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') checkForUpdate();
     });
