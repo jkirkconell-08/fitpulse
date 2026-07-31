@@ -453,8 +453,7 @@ const Routines = {
     const volSoFar  = this.calcVolume({ exercises: s.exercises });
     const nextEx    = s.exercises[s.currentEx + 1];
 
-    overlay.classList.remove('full');
-    overlay.classList.add('active');
+    overlay.classList.add('active', 'full');
 
     const segs = Array.from({ length: totalEx }, (_, i) =>
       `<span style="flex:1;height:4px;border-radius:999px;background:${i < exNum ? 'var(--lime)' : 'var(--border)'};display:block;"></span>`
@@ -476,8 +475,8 @@ const Routines = {
     }).join('');
 
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:440px;text-align:left;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:92vh;">
-        <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);flex:none;">
+      <div class="overlay-content" style="text-align:left;padding:0;overflow:hidden;display:flex;flex-direction:column;">
+        <div style="padding:max(18px, env(safe-area-inset-top,0px)) 20px 14px;border-bottom:1px solid var(--border);flex:none;">
           <div style="display:flex;align-items:center;gap:12px;">
             <button id="sess-exit" style="width:38px;height:38px;flex:none;border-radius:12px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="chevron-down" style="width:18px;height:18px;"></i></button>
             <div style="flex:1;min-width:0;">
@@ -492,7 +491,7 @@ const Routines = {
           <div style="display:flex;gap:4px;margin-top:14px;">${segs}</div>
         </div>
 
-        <div style="flex:1;overflow-y:auto;padding:16px 20px 0;">
+        <div style="flex:1;min-height:0;overflow-y:auto;padding:16px 20px 0;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
             <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);">EJERCICIO ${exNum} DE ${totalEx}</span>
             ${best ? `<span class="font-mono" style="font-size:11px;color:var(--text-muted);">PR ${best.weight} × ${best.reps}</span>` : ''}
@@ -514,7 +513,7 @@ const Routines = {
           </div>` : `<div style="height:14px;"></div>`}
         </div>
 
-        <div style="flex:none;padding:14px 20px 20px;display:flex;gap:10px;border-top:1px solid var(--border);">
+        <div style="flex:none;padding:14px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;border-top:1px solid var(--border);">
           <button id="sess-list-toggle" style="flex:none;width:52px;height:52px;border-radius:16px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="list" style="width:19px;height:19px;"></i></button>
           <button id="sess-skip-exercise" style="flex:1;height:52px;border:none;border-radius:16px;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;">Siguiente ejercicio</button>
         </div>
@@ -711,45 +710,48 @@ const Routines = {
     const maxVol = Math.max(...last6, 1);
 
     overlay.innerHTML = `
-      <div class="overlay-content" style="max-width:420px;text-align:center;">
-        <div style="width:76px;height:76px;margin:4px auto 16px;border-radius:26px;background:var(--lime);display:flex;align-items:center;justify-content:center;">
-          <i data-lucide="check" style="width:38px;height:38px;color:#08080A;"></i>
-        </div>
-        <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--lime);margin-bottom:8px;">SESIÓN COMPLETADA</div>
-        <h1 class="font-display" style="margin:0 0 20px;font-size:32px;line-height:1;">${s.routineName}</h1>
+      <div class="overlay-content" style="text-align:center;padding:0;overflow:hidden;display:flex;flex-direction:column;position:relative;">
+        <div style="position:absolute;top:-120px;left:50%;margin-left:-210px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(200,255,77,.15),transparent 68%);pointer-events:none;"></div>
 
-        <div class="stat-tiles" style="text-align:left;margin-bottom:12px;">
-          <div class="stat-tile"><div class="stat-tile-label">DURACIÓN</div><div class="stat-tile-val">${duration}<span style="font-size:15px;color:var(--text-muted);"> min</span></div></div>
-          <div class="stat-tile"><div class="stat-tile-label">VOLUMEN</div><div class="stat-tile-val lime">${this._fmtVol(volume)}</div></div>
-          <div class="stat-tile"><div class="stat-tile-label">SERIES</div><div class="stat-tile-val">${totalSets}</div></div>
-          <div class="stat-tile"><div class="stat-tile-label">VS. ANTERIOR</div><div class="stat-tile-val" style="color:${vsAnteriorPct === null ? 'var(--text-muted)' : vsAnteriorPct >= 0 ? '#30D158' : 'var(--danger)'};">${vsAnteriorPct === null ? '—' : (vsAnteriorPct >= 0 ? '+' : '') + vsAnteriorPct + '%'}</div></div>
-        </div>
+        <div style="position:relative;flex:1;min-height:0;overflow-y:auto;padding:max(56px, env(safe-area-inset-top,0px)) 20px 0;">
+          <div style="width:76px;height:76px;margin:4px auto 16px;border-radius:26px;background:var(--lime);display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="check" style="width:38px;height:38px;color:#08080A;"></i>
+          </div>
+          <div class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--lime);margin-bottom:8px;">SESIÓN COMPLETADA</div>
+          <h1 class="font-display" style="margin:0 0 20px;font-size:32px;line-height:1;">${s.routineName}</h1>
 
-        ${prDetail ? `
-        <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.3);border-radius:18px;padding:15px 16px;text-align:left;margin-bottom:12px;">
-          <i data-lucide="trophy" style="width:20px;height:20px;color:#30D158;flex:none;margin-top:1px;"></i>
-          <div><div style="font-size:15.5px;font-weight:700;">Récord personal</div><div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${prDetail.name} ${prDetail.weight} lbs × ${prDetail.reps}${prDetail.priorWeight ? ` — antes ${prDetail.priorWeight} × ${prDetail.priorReps}` : ''}</div></div>
-        </div>` : ''}
+          <div class="stat-tiles" style="text-align:left;margin-bottom:12px;">
+            <div class="stat-tile"><div class="stat-tile-label">DURACIÓN</div><div class="stat-tile-val">${duration}<span style="font-size:15px;color:var(--text-muted);"> min</span></div></div>
+            <div class="stat-tile"><div class="stat-tile-label">VOLUMEN</div><div class="stat-tile-val lime">${this._fmtVol(volume)}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">SERIES</div><div class="stat-tile-val">${totalSets}</div></div>
+            <div class="stat-tile"><div class="stat-tile-label">VS. ANTERIOR</div><div class="stat-tile-val" style="color:${vsAnteriorPct === null ? 'var(--text-muted)' : vsAnteriorPct >= 0 ? '#30D158' : 'var(--danger)'};">${vsAnteriorPct === null ? '—' : (vsAnteriorPct >= 0 ? '+' : '') + vsAnteriorPct + '%'}</div></div>
+          </div>
 
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:18px;text-align:left;margin-bottom:20px;">
-          <div class="font-mono" style="font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);margin-bottom:14px;">VOLUMEN · ÚLTIMAS ${last6.length} SESIONES</div>
-          <div style="display:flex;align-items:flex-end;gap:9px;height:70px;">
-            ${last6.map((v, i) => {
-              const isLast = i === last6.length - 1;
-              const h = Math.max(6, Math.round((v / maxVol) * 100));
-              return `<div style="flex:1;height:${h}%;border-radius:6px 6px 0 0;background:${isLast ? 'var(--lime)' : '#2E2640'};"></div>`;
-            }).join('')}
+          ${prDetail ? `
+          <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.3);border-radius:18px;padding:15px 16px;text-align:left;margin-bottom:12px;">
+            <i data-lucide="trophy" style="width:20px;height:20px;color:#30D158;flex:none;margin-top:1px;"></i>
+            <div><div style="font-size:15.5px;font-weight:700;">Récord personal</div><div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${prDetail.name} ${prDetail.weight} lbs × ${prDetail.reps}${prDetail.priorWeight ? ` — antes ${prDetail.priorWeight} × ${prDetail.priorReps}` : ''}</div></div>
+          </div>` : ''}
+
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:18px;text-align:left;margin-bottom:20px;">
+            <div class="font-mono" style="font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);margin-bottom:14px;">VOLUMEN · ÚLTIMAS ${last6.length} SESIONES</div>
+            <div style="display:flex;align-items:flex-end;gap:9px;height:70px;">
+              ${last6.map((v, i) => {
+                const isLast = i === last6.length - 1;
+                const h = Math.max(6, Math.round((v / maxVol) * 100));
+                return `<div style="flex:1;height:${h}%;border-radius:6px 6px 0 0;background:${isLast ? 'var(--lime)' : '#2E2640'};"></div>`;
+              }).join('')}
+            </div>
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;">
+        <div style="flex:none;padding:14px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;">
           <button id="sess-share" style="flex:none;width:56px;height:56px;border-radius:16px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="share-2" style="width:19px;height:19px;"></i></button>
           <button id="sess-finish" class="btn-lime" style="flex:1;height:56px;border:none;border-radius:16px;cursor:pointer;font-family:var(--font-display);font-weight:800;font-size:18px;">Guardar sesión</button>
         </div>
       </div>
     `;
-    overlay.classList.remove('full');
-    overlay.classList.add('active');
+    overlay.classList.add('active', 'full');
     Icons.init(overlay);
 
     document.getElementById('sess-share')?.addEventListener('click', () => {
@@ -776,7 +778,7 @@ const Routines = {
           Storage.guardarDia(today, dia);
         }
       } catch (e) {}
-      overlay.classList.remove('active');
+      overlay.classList.remove('active', 'full');
       this._render();
     };
   },

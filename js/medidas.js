@@ -121,23 +121,29 @@ const Medidas = {
       ${registros.length > 0 ? `
         <div class="config-card fade-in">
           <h3 style="display:flex;align-items:center;gap:8px;">${_SVG_CAL_SM} Historial de medidas</h3>
-          <div class="tabla-card" style="border:none;box-shadow:none;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  ${MEDIDA_FIELDS.slice(0, 4).map(f => `<th>${f.label.substring(0, 4)}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody>
-                ${registros.slice(0, 10).map(r => `
-                  <tr>
-                    <td>${this._formatDateShort(r.fecha)}</td>
-                    ${MEDIDA_FIELDS.slice(0, 4).map(f => `<td>${r[f.id] || '-'}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">${registros.length} registro${registros.length > 1 ? 's' : ''} · toca uno para ver el detalle completo</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${registros.map((r, i) => {
+              const prev = registros[i + 1] || null;
+              const primary = MEDIDA_FIELDS.find(f => r[f.id] != null);
+              const val = primary ? r[primary.id] : null;
+              const prevVal = primary && prev ? prev[primary.id] : null;
+              const diff = (primary && prevVal != null) ? +(val - prevVal).toFixed(1) : null;
+              const camposCount = MEDIDA_FIELDS.filter(f => r[f.id] != null).length;
+              return `
+                <div class="medida-hist-row" data-fecha="${r.fecha}" style="display:flex;align-items:center;gap:12px;background:var(--bg-input);border-radius:14px;padding:12px 14px;cursor:pointer;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:0.9rem;">${this._formatDate(r.fecha)}</div>
+                    <div class="font-mono" style="font-size:11px;color:var(--text-muted);margin-top:2px;">${camposCount} medida${camposCount > 1 ? 's' : ''} registrada${camposCount > 1 ? 's' : ''}</div>
+                  </div>
+                  ${primary ? `
+                  <div style="text-align:right;">
+                    <div class="font-display" style="font-weight:800;font-size:18px;">${val}<span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"> ${primary.unit}</span></div>
+                    ${diff !== null && diff !== 0 ? `<div class="font-mono ${diff < 0 ? 'positivo' : 'negativo'}" style="font-size:11px;">${diff > 0 ? '+' : ''}${diff}</div>` : ''}
+                  </div>` : ''}
+                  <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-dim);flex:none;"></i>
+                </div>`;
+            }).join('')}
           </div>
         </div>
       ` : ''}
@@ -155,6 +161,61 @@ const Medidas = {
       showToast('Medidas guardadas');
       this._render();
     });
+
+    if (typeof Icons !== 'undefined') Icons.init(container);
+    container.querySelectorAll('.medida-hist-row').forEach(row => {
+      row.addEventListener('click', () => this._showDetail(row.dataset.fecha));
+    });
+  },
+
+  _showDetail(fecha) {
+    const overlay = document.getElementById('medida-detail-overlay');
+    if (!overlay) return;
+    const data = Storage.obtenerMedidas();
+    const registros = data.registros || [];
+    const idx = registros.findIndex(r => r.fecha === fecha);
+    if (idx === -1) return;
+    const r = registros[idx];
+    const prev = registros[idx + 1] || null;
+
+    overlay.innerHTML = `
+      <div class="overlay-content" style="text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;font-weight:800;">${this._formatDate(r.fecha)}</h2>
+          <button id="medida-detail-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+        </div>
+        <div class="medidas-compare" style="margin-bottom:20px;">
+          ${MEDIDA_FIELDS.map(f => {
+            const val = r[f.id];
+            if (val == null) return '';
+            const prevVal = prev ? prev[f.id] : null;
+            let diff = '';
+            if (prevVal != null) {
+              const d = +(val - prevVal).toFixed(1);
+              if (d !== 0) diff = `<span class="${d < 0 ? 'positivo' : 'negativo'}">${d > 0 ? '+' : ''}${d}</span>`;
+            }
+            return `
+              <div class="medida-compare-row">
+                <span class="medida-label" style="display:flex;align-items:center;gap:5px;">${f.icon} ${f.label}</span>
+                <span class="medida-val">${val} ${f.unit}</span>
+                ${diff}
+              </div>`;
+          }).join('')}
+        </div>
+        <button id="medida-detail-del" class="btn btn-secondary btn-full" style="color:var(--danger);border-color:rgba(255,69,58,0.3);">Eliminar este registro</button>
+      </div>
+    `;
+    overlay.classList.add('active');
+    Icons.init(overlay);
+    document.getElementById('medida-detail-close').onclick = () => overlay.classList.remove('active');
+    document.getElementById('medida-detail-del').onclick = () => {
+      if (!confirm('¿Eliminar este registro de medidas?')) return;
+      data.registros = registros.filter(x => x.fecha !== fecha);
+      Storage.guardarMedidas(data);
+      overlay.classList.remove('active');
+      this._render();
+      if (typeof showToast === 'function') showToast('Registro eliminado');
+    };
   },
 
   _formatDate(fecha) {
