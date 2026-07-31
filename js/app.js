@@ -39,6 +39,66 @@ function getItemsForDate(fecha) {
   return getDailyItems().filter(item => !item.gymOnly || esGym);
 }
 
+/* =========================================================
+   Puente Comidas <-> Hábitos del día
+   Un hábito como "Desayuno completo" se detecta por palabras clave en su
+   etiqueta (funciona con los hábitos por defecto y con los que el usuario
+   renombró/creó), y queda enlazado al tipo de comida de Comidas.js.
+   ========================================================= */
+const MEAL_TYPE_LABELS = { desayuno: 'el desayuno', almuerzo: 'el almuerzo', cena: 'la cena', merienda_am: 'la merienda de la mañana', merienda_pm: 'la merienda de la tarde' };
+
+function _normalizarTexto(txt) {
+  return (txt || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function mealTypeForHabitItem(item) {
+  if (!item || !item.label) return null;
+  const label = _normalizarTexto(item.label);
+  if (label.includes('desayuno')) return 'desayuno';
+  if (label.includes('almuerzo')) return 'almuerzo';
+  if (label.includes('cena')) return 'cena';
+  if (label.includes('merienda')) {
+    if (label.includes('tarde') || /\bpm\b/.test(label)) return 'merienda_pm';
+    if (label.includes('manana') || /\bam\b/.test(label)) return 'merienda_am';
+    return item.seccion === 'tarde' ? 'merienda_pm' : 'merienda_am';
+  }
+  return null;
+}
+
+function habitItemForMealType(fecha, tipo) {
+  return getItemsForDate(fecha).find(i => mealTypeForHabitItem(i) === tipo) || null;
+}
+
+function isWaterGoalHabitItem(item) {
+  if (!item || !item.label) return false;
+  return item.id === 'agua_2L' || _normalizarTexto(item.label).includes('litro');
+}
+
+function _marcarHabito(fecha, item) {
+  const dia = Storage.obtenerDia(fecha) || { fecha, checklist: {}, nota: '', cumplimiento: 0 };
+  if (dia.checklist[item.id] === true) return false;
+  dia.checklist[item.id] = true;
+  const items = getItemsForDate(fecha);
+  const checked = items.filter(i => dia.checklist[i.id] === true).length;
+  dia.cumplimiento = Math.round((checked / items.length) * 100);
+  Storage.guardarDia(fecha, dia);
+  return true;
+}
+
+/* Llamada desde Comidas.js al guardar alimentos: marca el hábito de esa comida si existe */
+function markMealHabitDone(fecha, tipo) {
+  const item = habitItemForMealType(fecha, tipo);
+  if (!item) return null;
+  return _marcarHabito(fecha, item) ? item : null;
+}
+
+/* Llamada desde el widget de agua al llegar a la meta de vasos */
+function markWaterHabitDone(fecha) {
+  const item = getItemsForDate(fecha).find(isWaterGoalHabitItem);
+  if (!item) return null;
+  return _marcarHabito(fecha, item) ? item : null;
+}
+
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DIAS_CORTO  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -320,7 +380,11 @@ const App = {
     `;
 
     document.getElementById('water-plus').addEventListener('click', () => {
-      Storage.agregarVasoAgua(this.fecha);
+      const data = Storage.agregarVasoAgua(this.fecha);
+      if (data.vasos >= data.meta && markWaterHabitDone(this.fecha) && typeof this._renderChecklist === 'function') {
+        this._renderChecklist();
+        if (typeof showToast === 'function') showToast('¡Meta de agua cumplida! Hábito marcado');
+      }
       this._renderWater();
       this._renderHeroRing();
     });
@@ -532,7 +596,26 @@ const App = {
 
   _toggleItem(id, el) {
     const dia = Storage.obtenerDia(this.fecha) || { fecha: this.fecha, checklist: {}, nota: '', cumplimiento: 0 };
-    dia.checklist[id] = !dia.checklist[id];
+    const turningOn = !dia.checklist[id];
+
+    // Un habito de comida (desayuno/almuerzo/cena/merienda) no se puede marcar
+    // a mano sin haber registrado antes que comiste eso — evita marcar en
+    // falso y manda a Comidas con esa franja horaria ya preseleccionada.
+    if (turningOn) {
+      const item = getItemsForDate(this.fecha).find(i => i.id === id);
+      const tipo = mealTypeForHabitItem(item);
+      if (tipo) {
+        const registro = Storage.obtenerComidas(this.fecha);
+        const yaRegistrado = (registro.comidas || []).some(c => c.tipo === tipo);
+        if (!yaRegistrado) {
+          if (typeof showToast === 'function') showToast(`Primero registra ${MEAL_TYPE_LABELS[tipo] || 'esa comida'} en Comidas`, 'warning');
+          setTimeout(() => { location.href = `comidas.html?openSearch=1&tipo=${tipo}`; }, 900);
+          return;
+        }
+      }
+    }
+
+    dia.checklist[id] = turningOn;
     const items = getItemsForDate(this.fecha);
     const checked = items.filter(i => dia.checklist[i.id] === true).length;
     dia.cumplimiento = Math.round((checked / items.length) * 100);

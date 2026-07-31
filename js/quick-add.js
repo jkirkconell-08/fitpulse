@@ -49,8 +49,13 @@ const QuickAdd = {
     Icons.init(backdrop);
 
     document.getElementById('qa-agua').addEventListener('click', () => {
-      Storage.agregarVasoAgua(Storage.today());
-      if (typeof showToast === 'function') showToast('+1 vaso de agua');
+      const data = Storage.agregarVasoAgua(Storage.today());
+      if (data.vasos >= data.meta && typeof markWaterHabitDone === 'function' && markWaterHabitDone(Storage.today())) {
+        if (typeof showToast === 'function') showToast('¡Meta de agua cumplida! Hábito marcado');
+        if (typeof App !== 'undefined' && App._renderChecklist) App._renderChecklist();
+      } else if (typeof showToast === 'function') {
+        showToast('+1 vaso de agua');
+      }
       if (typeof App !== 'undefined' && App._renderWater) { App._renderWater(); App._renderHeroRing(); }
       this.close();
     });

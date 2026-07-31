@@ -189,8 +189,10 @@ const Comidas = {
   init() {
     this.fecha = Storage.today();
     this._render();
-    if (new URLSearchParams(location.search).get('openSearch')) {
-      setTimeout(() => this._showFoodSearch(), 50);
+    const params = new URLSearchParams(location.search);
+    if (params.get('openSearch')) {
+      const presetTipo = params.get('tipo');
+      setTimeout(() => this._showFoodSearch(presetTipo), 50);
     }
   },
 
@@ -504,8 +506,10 @@ const Comidas = {
   },
 
   /* Selecciona varios alimentos -> ajusta cantidad de cada uno -> elige
-     el horario -> guarda todo junto (en vez de agregar uno a la vez). */
-  _showFoodSearch() {
+     el horario -> guarda todo junto (en vez de agregar uno a la vez).
+     presetTipo: cuando se llega desde "marca el hábito" en Hoy, precarga
+     ese horario en vez de adivinarlo por la hora actual. */
+  _showFoodSearch(presetTipo) {
     const overlay = document.getElementById('food-overlay');
     if (!overlay) return;
     overlay.classList.add('active', 'full');
@@ -585,7 +589,7 @@ const Comidas = {
       searchInput.style.display = 'none';
       catBtns.style.display = 'none';
 
-      let tipo = this._autoMealType();
+      let tipo = MEAL_TYPES.some(m => m.id === presetTipo) ? presetTipo : this._autoMealType();
 
       const renderReviewFooter = () => {
         cartBarEl.innerHTML = `<button id="review-save" class="btn-lime" style="width:100%;height:52px;border:none;border-radius:16px;cursor:pointer;font-size:16px;">Guardar ${selection.size} alimento${selection.size > 1 ? 's' : ''}</button>`;
@@ -603,6 +607,7 @@ const Comidas = {
           overlay.classList.remove('active', 'full');
           this._render();
           this._toast(`${n} alimento${n > 1 ? 's' : ''} agregado${n > 1 ? 's' : ''}`);
+          this._autoMarkHabit(tipo);
         };
       };
 
@@ -748,6 +753,7 @@ const Comidas = {
       overlay.classList.remove('active', 'full');
       this._render();
       this._toast(`${name} agregado y guardado en Míos`);
+      this._autoMarkHabit(tipo);
     });
   },
 
@@ -757,5 +763,14 @@ const Comidas = {
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+  },
+
+  /* Si el hábito del día correspondiente a este horario existe y aún no
+     estaba marcado, se marca solo — así "Desayuno completo" no hay que
+     tocarlo a mano si ya registraste qué desayunaste. */
+  _autoMarkHabit(tipo) {
+    if (typeof markMealHabitDone !== 'function') return;
+    const item = markMealHabitDone(this.fecha, tipo);
+    if (item) this._toast(`Hábito "${item.label}" marcado automáticamente`);
   }
 };
