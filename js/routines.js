@@ -448,8 +448,13 @@ const Routines = {
     const totalEx   = s.exercises.length;
     const targetMin = parseInt(ex.targetReps.split('-')[0]) || 10;
     const lastSet   = ex.sets[ex.sets.length - 1];
-    const weightStart = lastSet?.weightDone ?? (ex.weight || 0);
     const best      = this._bestSetForExercise(s.routineId, ex.name);
+    // Arranca con el peso/reps mas altos que se hayan hecho en la sesion (si ya
+    // hay una serie hecha) o, si es la primera serie de este ejercicio, con el
+    // mejor registro historico (no con la plantilla de la rutina) — asi la app
+    // siempre "recuerda" el maximo alcanzado y solo sube desde ahi.
+    const weightStart = lastSet?.weightDone ?? (best ? best.weight : (ex.weight || 0));
+    const repsStart   = lastSet?.repsDone   ?? (best ? best.reps   : targetMin);
     const volSoFar  = this.calcVolume({ exercises: s.exercises });
     const nextEx    = s.exercises[s.currentEx + 1];
 
@@ -540,10 +545,10 @@ const Routines = {
     };
     document.getElementById('sess-list-toggle').onclick = () => this._toggleExerciseList(s);
 
-    this._renderActiveSetPanel(s, ex, weightStart, targetMin);
+    this._renderActiveSetPanel(s, ex, weightStart, repsStart, targetMin);
   },
 
-  _renderActiveSetPanel(s, ex, weightStart, targetMin) {
+  _renderActiveSetPanel(s, ex, weightStart, repsStart, targetMin) {
     const rowEl = document.getElementById('active-set-row');
     const ctrlEl = document.getElementById('rest-or-controls');
     if (!rowEl || !ctrlEl) return;
@@ -552,7 +557,7 @@ const Routines = {
       rowEl.outerHTML = `<div id="active-set-row" style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;align-items:center;padding:12px 16px;border-top:1px solid var(--border);background:rgba(200,255,77,.05);">
         <span class="font-mono" style="font-size:15px;font-weight:700;color:var(--lime);">${s.currentSet + 1}</span>
         <span style="text-align:right;color:var(--text-muted);font-family:var(--font-mono);">${s._resting.nextWeight}</span>
-        <span style="text-align:right;color:var(--text-muted);font-family:var(--font-mono);">${targetMin}</span>
+        <span style="text-align:right;color:var(--text-muted);font-family:var(--font-mono);">${s._resting.nextReps}</span>
         <span></span>
       </div>`;
       this._renderRestPanel(ctrlEl, s);
@@ -560,14 +565,16 @@ const Routines = {
     }
 
     let weightVal = weightStart;
-    let repsVal = targetMin;
+    let repsVal = repsStart;
 
+    // Inputs numericos reales (no solo texto): el usuario puede tocar y
+    // escribir el peso/reps exactos que hizo, ademas de los chips rapidos.
     rowEl.outerHTML = `
       <div id="active-set-row" style="padding:14px 16px;border-top:1px solid var(--border);background:rgba(200,255,77,.05);">
         <div style="display:grid;grid-template-columns:46px 1fr 1fr 46px;gap:6px;align-items:center;">
           <span class="font-mono" style="font-size:15px;font-weight:700;color:var(--lime);">${s.currentSet + 1}</span>
-          <div id="active-weight-box" style="height:52px;border-radius:13px;border:1.5px solid var(--lime);background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px;">${weightVal}</div>
-          <div id="active-reps-box" style="height:52px;border-radius:13px;border:1.5px solid var(--border-strong);background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:24px;">${repsVal}</div>
+          <input id="active-weight-box" type="number" inputmode="decimal" step="0.5" value="${weightVal}" style="width:100%;height:52px;border-radius:13px;border:1.5px solid var(--lime);background:var(--bg-input);color:var(--text-primary);text-align:center;font-family:var(--font-display);font-weight:800;font-size:24px;outline:none;box-sizing:border-box;">
+          <input id="active-reps-box" type="number" inputmode="numeric" step="1" value="${repsVal}" style="width:100%;height:52px;border-radius:13px;border:1.5px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);text-align:center;font-family:var(--font-display);font-weight:800;font-size:24px;outline:none;box-sizing:border-box;">
           <button id="active-confirm" style="height:52px;border-radius:13px;border:none;background:var(--lime);color:#08080A;cursor:pointer;display:flex;align-items:center;justify-content:center;animation:fp-glow 2.4s infinite;"><i data-lucide="check" style="width:20px;height:20px;"></i></button>
         </div>
       </div>
@@ -585,6 +592,11 @@ const Routines = {
 
     const wBox = document.getElementById('active-weight-box');
     const rBox = document.getElementById('active-reps-box');
+    wBox.addEventListener('focus', () => wBox.select());
+    rBox.addEventListener('focus', () => rBox.select());
+    wBox.addEventListener('input', () => { weightVal = parseFloat(wBox.value) || 0; });
+    rBox.addEventListener('input', () => { repsVal = parseInt(rBox.value, 10) || 0; });
+
     ctrlEl.querySelectorAll('.set-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         const a = btn.dataset.adjust;
@@ -592,22 +604,22 @@ const Routines = {
         if (a === 'w+') weightVal += 5;
         if (a === 'r-') repsVal = Math.max(0, repsVal - 1);
         if (a === 'r+') repsVal++;
-        wBox.textContent = weightVal;
-        rBox.textContent = repsVal;
+        wBox.value = weightVal;
+        rBox.value = repsVal;
       });
     });
 
     document.getElementById('active-confirm').onclick = () => {
       ex.sets.push({ repsDone: repsVal, weightDone: weightVal, status: repsVal >= targetMin ? 'done' : 'partial' });
-      this._advanceSession(s, weightVal);
+      this._advanceSession(s, weightVal, repsVal);
     };
     document.getElementById('active-skip-set').onclick = () => {
       ex.sets.push({ repsDone: 0, weightDone: weightVal, status: 'skipped' });
-      this._advanceSession(s, weightVal);
+      this._advanceSession(s, weightVal, repsVal);
     };
   },
 
-  _advanceSession(s, weightDone) {
+  _advanceSession(s, weightDone, repsDone) {
     if (navigator.vibrate) navigator.vibrate(60);
     const ex = s.exercises[s.currentEx];
     if (ex.sets.length >= ex.targetSets) {
@@ -623,7 +635,7 @@ const Routines = {
     } else {
       s.currentSet++;
       const restSeconds = ex.restSeconds || 60;
-      s._resting = { remaining: restSeconds, total: restSeconds, nextWeight: weightDone };
+      s._resting = { remaining: restSeconds, total: restSeconds, nextWeight: weightDone, nextReps: repsDone };
       this._renderSession(s);
     }
   },
@@ -640,7 +652,7 @@ const Routines = {
             <svg viewBox="0 0 52 52" style="width:52px;height:52px;transform:rotate(-90deg);display:block;"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" stroke-width="5"/><circle cx="26" cy="26" r="22" fill="none" stroke="#A78BFA" stroke-width="5" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="${138 - pct * 138}"/></svg>
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:13px;">${state.remaining}</div>
           </div>
-          <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:700;">Descanso</div><div class="font-mono" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Siguiente: serie ${s.currentSet + 1} · ${state.nextWeight} lbs</div></div>
+          <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:700;">Descanso</div><div class="font-mono" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Siguiente: serie ${s.currentSet + 1} · ${state.nextWeight} lbs × ${state.nextReps}</div></div>
           <button id="rest-skip" style="flex:none;padding:0 15px;height:40px;border-radius:12px;border:1px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);font-size:13px;font-weight:600;cursor:pointer;">Saltar</button>
         </div>
       `;
