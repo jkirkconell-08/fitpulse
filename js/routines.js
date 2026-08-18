@@ -842,7 +842,7 @@ const Routines = {
             </select>
           </div>
           <div>
-            <label style="${labelStyle}">Días</label>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Días</label>
             <div style="display:flex;gap:6px;" id="ed-dias">
               ${['D','L','M','X','J','V','S'].map((d,i) => `
                 <button class="ed-dia-btn" data-dia="${i}"

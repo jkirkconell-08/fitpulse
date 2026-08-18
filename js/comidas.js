@@ -18,6 +18,8 @@ const FOOD_DB = [
   { id: 12, name: 'Jamón de pavo',           cal: 104, prot: 18,  carb: 2,   fat: 2.5, serving: '100g', cat: 'proteinas' },
   { id: 13, name: 'Salchicha',               cal: 301, prot: 11,  carb: 2,   fat: 27,  serving: '100g', cat: 'proteinas' },
   { id: 14, name: 'Chorizo',                 cal: 455, prot: 24,  carb: 2,   fat: 38,  serving: '100g', cat: 'proteinas' },
+  { id: 15, name: 'Chuleta de cerdo',        cal: 231, prot: 25,  carb: 0,   fat: 14,  serving: '100g', cat: 'proteinas' },
+  { id: 16, name: 'Chuleta ahumada',         cal: 190, prot: 22,  carb: 1,   fat: 10,  serving: '100g', cat: 'proteinas' },
 
   // ─── CARBOHIDRATOS ────────────────────────
   { id: 20, name: 'Arroz blanco cocido',     cal: 130, prot: 2.7, carb: 28,  fat: 0.3, serving: '100g', cat: 'carbohidratos' },
@@ -181,6 +183,25 @@ const MEAL_TYPES = [
   { id: 'almuerzo',     name: 'Almuerzo',    icon: 'utensils', hora: '11:00-14:00' },
   { id: 'merienda_pm',  name: 'Merienda PM', icon: 'apple',    hora: '14:00-17:00' },
   { id: 'cena',         name: 'Cena',        icon: 'moon',     hora: '17:00-21:00' },
+];
+
+/* Medidas alternativas para describir la cantidad de un alimento — no todo
+   se registra en gramos: media taza, cucharada, unidad, plato, etc. La
+   cantidad numérica (multiplicador de calorías) se mantiene aparte; esto
+   solo cambia cómo se describe/lee la porción. */
+const MEASURE_UNITS = [
+  { id: 'porcion',       label: 'Porción (como viene)' },
+  { id: 'gramos',        label: 'Gramos' },
+  { id: 'ml',            label: 'Mililitros' },
+  { id: 'taza',          label: 'Taza' },
+  { id: 'media_taza',    label: 'Media taza' },
+  { id: 'cda',           label: 'Cucharada' },
+  { id: 'cdta',          label: 'Cucharadita' },
+  { id: 'unidad',        label: 'Unidad / pieza' },
+  { id: 'rebanada',      label: 'Rebanada' },
+  { id: 'plato',         label: 'Plato' },
+  { id: 'tazon',         label: 'Tazón' },
+  { id: 'personalizada', label: 'Personalizada' },
 ];
 
 const Comidas = {
@@ -408,7 +429,7 @@ const Comidas = {
             <div class="meal-item" data-id="${item.id}" style="cursor:pointer;">
               <div class="meal-item-info">
                 <div class="meal-item-name">${item.nombre}</div>
-                <div class="meal-item-detail">${item.cantidad > 1 ? item.cantidad + 'x ' : ''}${item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
+                <div class="meal-item-detail">${item.cantidad}x ${item.medida || item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
               </div>
               <button class="meal-item-del" data-id="${item.id}" title="Eliminar"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
             </div>
@@ -460,32 +481,56 @@ const Comidas = {
     const modal = document.getElementById('food-add-modal');
     if (!modal) return;
     modal.classList.add('active');
-    modal.innerHTML = `
-      <div class="overlay-content" style="max-width:360px;">
-        <h2 style="font-size:1.05rem;margin-bottom:4px;">${item.nombre}</h2>
-        <p style="color:var(--text-muted);margin-bottom:16px;">${item.serving || ''} · ${item.cal} kcal / unidad</p>
-        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
-          <button id="qty-dec" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">−</button>
-          <div id="qty-val" style="font-size:2rem;font-weight:800;min-width:60px;text-align:center;">${item.cantidad}</div>
-          <button id="qty-inc" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">+</button>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button id="qty-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
-          <button id="qty-save" class="btn btn-primary" style="flex:1;">Guardar</button>
-        </div>
-      </div>
-    `;
+
     let qty = item.cantidad;
-    const valEl = document.getElementById('qty-val');
-    document.getElementById('qty-dec').onclick = () => { qty = Math.max(0.5, qty - 0.5); valEl.textContent = qty; };
-    document.getElementById('qty-inc').onclick = () => { qty = Math.min(10, qty + 0.5); valEl.textContent = qty; };
-    document.getElementById('qty-cancel').onclick = () => modal.classList.remove('active');
-    document.getElementById('qty-save').onclick = () => {
-      item.cantidad = qty;
-      Storage.guardarComidas(this.fecha, registro);
-      modal.classList.remove('active');
-      this._render();
+    let medidaSel = item.medidaUnitId || 'porcion';
+    let medidaCustom = medidaSel === 'personalizada' ? (item.medida || '') : '';
+
+    const draw = () => {
+      modal.innerHTML = `
+        <div class="overlay-content" style="max-width:360px;">
+          <h2 style="font-size:1.05rem;margin-bottom:4px;">${item.nombre}</h2>
+          <p style="color:var(--text-muted);margin-bottom:16px;">${item.cal} kcal por ${item.serving || 'porción'}</p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
+            <button id="qty-dec" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">−</button>
+            <input id="qty-val" type="number" step="0.25" min="0.25" value="${qty}" style="font-size:1.6rem;font-weight:800;width:84px;text-align:center;background:var(--bg-input);border:1.5px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;">
+            <button id="qty-inc" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">+</button>
+          </div>
+          <div class="config-row" style="margin-bottom:${medidaSel === 'personalizada' ? '12' : '18'}px;">
+            <label>Medida</label>
+            <select id="qty-medida">
+              ${MEASURE_UNITS.map(u => `<option value="${u.id}" ${u.id === medidaSel ? 'selected' : ''}>${u.label}</option>`).join('')}
+            </select>
+          </div>
+          ${medidaSel === 'personalizada' ? `
+          <div class="config-row" style="margin-bottom:18px;">
+            <label>Describe la medida</label>
+            <input type="text" id="qty-medida-custom" placeholder="Ej: 1 plato grande" value="${medidaCustom}">
+          </div>` : ''}
+          <div style="display:flex;gap:10px;">
+            <button id="qty-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
+            <button id="qty-save" class="btn btn-primary" style="flex:1;">Guardar</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('qty-dec').onclick = () => { qty = Math.max(0.25, +(qty - 0.25).toFixed(2)); draw(); };
+      document.getElementById('qty-inc').onclick = () => { qty = +(qty + 0.25).toFixed(2); draw(); };
+      document.getElementById('qty-val').oninput = (e) => { qty = parseFloat(e.target.value) || qty; };
+      document.getElementById('qty-medida').onchange = (e) => { medidaSel = e.target.value; draw(); };
+      document.getElementById('qty-medida-custom')?.addEventListener('input', (e) => { medidaCustom = e.target.value; });
+      document.getElementById('qty-cancel').onclick = () => modal.classList.remove('active');
+      document.getElementById('qty-save').onclick = () => {
+        item.cantidad = Math.max(0.25, qty);
+        item.medidaUnitId = medidaSel;
+        item.medida = medidaSel === 'porcion' ? ''
+          : medidaSel === 'personalizada' ? (medidaCustom.trim() || 'Personalizada')
+          : MEASURE_UNITS.find(u => u.id === medidaSel).label;
+        Storage.guardarComidas(this.fecha, registro);
+        modal.classList.remove('active');
+        this._render();
+      };
     };
+    draw();
   },
 
   _deleteFood(id) {
@@ -597,9 +642,14 @@ const Comidas = {
           const registro = Storage.obtenerComidas(this.fecha);
           if (!registro.comidas) registro.comidas = [];
           selection.forEach(entry => {
+            const medidaUnitId = entry.medidaUnitId || 'porcion';
+            const medida = medidaUnitId === 'porcion' ? ''
+              : medidaUnitId === 'personalizada' ? ((entry.medidaCustom || '').trim() || 'Personalizada')
+              : MEASURE_UNITS.find(u => u.id === medidaUnitId).label;
             registro.comidas.push({
               id: Date.now() + Math.random(), nombre: entry.food.name, cal: entry.food.cal, prot: entry.food.prot,
-              carb: entry.food.carb, fat: entry.food.fat, serving: entry.food.serving, cantidad: entry.qty, tipo
+              carb: entry.food.carb, fat: entry.food.fat, serving: entry.food.serving, cantidad: entry.qty, tipo,
+              medidaUnitId, medida
             });
           });
           Storage.guardarComidas(this.fecha, registro);
@@ -615,16 +665,22 @@ const Comidas = {
         const wrap = document.getElementById('review-items');
         if (!wrap) return;
         wrap.innerHTML = [...selection.entries()].map(([id, entry]) => `
-          <div class="meal-item" style="cursor:default;">
+          <div class="meal-item" style="cursor:default;flex-wrap:wrap;">
             <div class="meal-item-info">
               <div class="meal-item-name">${entry.food.name}</div>
-              <div class="meal-item-detail">${entry.food.serving || ''} \u00b7 ${Math.round(entry.food.cal * entry.qty)} kcal</div>
+              <div class="meal-item-detail">${entry.food.cal} kcal por ${entry.food.serving || 'porci\u00f3n'}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
               <button class="rev-qty-dec" data-id="${id}" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);cursor:pointer;">\u2212</button>
               <span style="min-width:26px;text-align:center;font-weight:700;font-size:0.85rem;">${entry.qty}</span>
               <button class="rev-qty-inc" data-id="${id}" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);cursor:pointer;">+</button>
               <button class="rev-remove" data-id="${id}" title="Quitar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;display:flex;"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
+            </div>
+            <div style="width:100%;display:flex;gap:8px;align-items:center;margin-top:8px;">
+              <select class="rev-medida" data-id="${id}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.78rem;">
+                ${MEASURE_UNITS.map(u => `<option value="${u.id}" ${u.id === (entry.medidaUnitId || 'porcion') ? 'selected' : ''}>${u.label}</option>`).join('')}
+              </select>
+              ${entry.medidaUnitId === 'personalizada' ? `<input type="text" class="rev-medida-custom" data-id="${id}" placeholder="Ej: 1 plato grande" value="${entry.medidaCustom || ''}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.78rem;">` : ''}
             </div>
           </div>
         `).join('');
@@ -641,6 +697,15 @@ const Comidas = {
           e.qty = +(e.qty + 0.25).toFixed(2);
           renderReviewItems();
         });
+        wrap.querySelectorAll('.rev-medida').forEach(sel => sel.onchange = () => {
+          const e = selection.get(sel.dataset.id); if (!e) return;
+          e.medidaUnitId = sel.value;
+          renderReviewItems();
+        });
+        wrap.querySelectorAll('.rev-medida-custom').forEach(inp => inp.addEventListener('input', () => {
+          const e = selection.get(inp.dataset.id); if (!e) return;
+          e.medidaCustom = inp.value;
+        }));
         wrap.querySelectorAll('.rev-remove').forEach(b => b.onclick = () => {
           selection.delete(b.dataset.id);
           if (selection.size === 0) {
