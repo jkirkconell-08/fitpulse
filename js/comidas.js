@@ -186,9 +186,13 @@ const MEAL_TYPES = [
 ];
 
 /* Medidas alternativas para describir la cantidad de un alimento — no todo
-   se registra en gramos: media taza, cucharada, unidad, plato, etc. La
-   cantidad numérica (multiplicador de calorías) se mantiene aparte; esto
-   solo cambia cómo se describe/lee la porción. */
+   se registra en gramos: media taza, cucharada, plato, etc. Cada medida SÍ
+   recalcula las calorías/macros reales de ese alimento (no es solo una
+   etiqueta): se parte del peso real de su porción base (ej. "100g", "1 taza",
+   "1 cda (14g)") y se escala con equivalencias estándar de gramos por medida.
+   Si un alimento no tiene un peso base identificable (ej. "1 unidad" sin
+   gramos, como un huevo o un banano) solo se ofrece "Porción" y "Personalizada",
+   para no inventar una conversión sin base real. */
 const MEASURE_UNITS = [
   { id: 'porcion',       label: 'Porción (como viene)' },
   { id: 'gramos',        label: 'Gramos' },
@@ -197,12 +201,77 @@ const MEASURE_UNITS = [
   { id: 'media_taza',    label: 'Media taza' },
   { id: 'cda',           label: 'Cucharada' },
   { id: 'cdta',          label: 'Cucharadita' },
-  { id: 'unidad',        label: 'Unidad / pieza' },
-  { id: 'rebanada',      label: 'Rebanada' },
   { id: 'plato',         label: 'Plato' },
   { id: 'tazon',         label: 'Tazón' },
   { id: 'personalizada', label: 'Personalizada' },
 ];
+
+// Gramos (o ml) estándar por medida — las mismas equivalencias que usa la
+// mayoría de apps de nutrición (1 taza ≈ 240ml/g, 1 cda ≈ 15g, etc.).
+const MEASURE_GRAMS = { taza: 240, media_taza: 120, cda: 15, cdta: 5, plato: 350, tazon: 300 };
+
+/* Intenta deducir cuántos gramos (o ml) representa la porción base de un
+   alimento a partir de su texto "serving" (ej. "100g" -> 100, "1 taza" -> 240,
+   "1 cda (14g)" -> 14). Devuelve null si no se puede determinar (ej. "1 unidad",
+   "1 barra") — en ese caso no se pueden derivar otras medidas para ese alimento. */
+function _gramsForServing(serving) {
+  if (!serving) return null;
+  let m = serving.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  if (m) return parseFloat(m[1]);
+  m = serving.match(/(\d+(?:\.\d+)?)\s*ml\b/i);
+  if (m) return parseFloat(m[1]);
+  const low = serving.toLowerCase();
+  if (low.includes('media taza')) return MEASURE_GRAMS.media_taza;
+  if (low.includes('taza')) return MEASURE_GRAMS.taza;
+  if (low.includes('cdta') || low.includes('cucharadita')) return MEASURE_GRAMS.cdta;
+  if (low.includes('cda') || low.includes('cucharada')) return MEASURE_GRAMS.cda;
+  if (low.includes('tazón') || low.includes('tazon')) return MEASURE_GRAMS.tazon;
+  if (low.includes('plato')) return MEASURE_GRAMS.plato;
+  if (low.includes('vaso')) return MEASURE_GRAMS.taza;
+  return null;
+}
+
+/* Medidas disponibles para un alimento. Los alimentos personalizados
+   ("Míos") quedan bloqueados a la única medida con la que se crearon —
+   no se puede cambiar ni al guardarlos ni al seleccionarlos después. */
+function _measuresForFood(food) {
+  if (!food) return ['porcion', 'personalizada'];
+  if (food.cat === 'custom') return ['porcion'];
+  const grams = _gramsForServing(food.serving);
+  const ids = ['porcion'];
+  if (grams) {
+    ids.push('gramos');
+    if (food.cat === 'bebidas') ids.push('ml');
+    ids.push('taza', 'media_taza', 'cda', 'cdta', 'plato', 'tazon');
+  }
+  ids.push('personalizada');
+  return ids;
+}
+
+/* Calorías/macros reales de "1 unidad" de la medida elegida para ese
+   alimento (ej. 1 cucharada de aceite vs. 1 cucharada de pollo NO pesan ni
+   valen lo mismo — se deriva del peso real de cada alimento, no de una
+   tabla genérica compartida). */
+function _macrosForMeasure(food, measureId) {
+  const id = measureId || 'porcion';
+  if (id === 'porcion' || id === 'personalizada') {
+    return { cal: food.cal, prot: food.prot, carb: food.carb, fat: food.fat, label: '' };
+  }
+  const gramsBase = _gramsForServing(food.serving);
+  if (!gramsBase) {
+    return { cal: food.cal, prot: food.prot, carb: food.carb, fat: food.fat, label: MEASURE_UNITS.find(u => u.id === id)?.label || '' };
+  }
+  const targetGrams = (id === 'gramos' || id === 'ml') ? 1 : MEASURE_GRAMS[id];
+  const f = targetGrams / gramsBase;
+  const round2 = n => Math.round(n * 100) / 100;
+  return {
+    cal:  round2(food.cal  * f),
+    prot: round2(food.prot * f),
+    carb: round2(food.carb * f),
+    fat:  round2(food.fat  * f),
+    label: id === 'gramos' ? 'g' : id === 'ml' ? 'ml' : (MEASURE_UNITS.find(u => u.id === id)?.label || '')
+  };
+}
 
 const Comidas = {
   fecha: null,
@@ -429,7 +498,7 @@ const Comidas = {
             <div class="meal-item" data-id="${item.id}" style="cursor:pointer;">
               <div class="meal-item-info">
                 <div class="meal-item-name">${item.nombre}</div>
-                <div class="meal-item-detail">${item.cantidad}x ${item.medida || item.serving || ''} · ${Math.round(item.cal * item.cantidad)} kcal</div>
+                <div class="meal-item-detail">${(item.medidaUnitId === 'gramos' || item.medidaUnitId === 'ml') ? `${item.cantidad}${item.medida}` : `${item.cantidad}x ${item.medida || item.serving || ''}`} · ${Math.round(item.cal * item.cantidad)} kcal</div>
               </div>
               <button class="meal-item-del" data-id="${item.id}" title="Eliminar"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
             </div>
@@ -482,24 +551,40 @@ const Comidas = {
     if (!modal) return;
     modal.classList.add('active');
 
+    // Alimentos "Míos" (personalizados) quedan bloqueados a la única medida
+    // con la que se crearon — items viejos sin este flag se tratan como
+    // no-bloqueados y usan sus propios valores base como referencia.
+    const locked = !!item.medidaLocked;
+    const base = {
+      cal: item.baseCal ?? item.cal, prot: item.baseProt ?? item.prot,
+      carb: item.baseCarb ?? item.carb, fat: item.baseFat ?? item.fat,
+      serving: item.baseServing ?? item.serving,
+      cat: locked ? 'custom' : undefined
+    };
+    const availableIds = _measuresForFood(base);
+
     let qty = item.cantidad;
     let medidaSel = item.medidaUnitId || 'porcion';
     let medidaCustom = medidaSel === 'personalizada' ? (item.medida || '') : '';
 
     const draw = () => {
+      const m = _macrosForMeasure(base, medidaSel);
       modal.innerHTML = `
         <div class="overlay-content" style="max-width:360px;">
           <h2 style="font-size:1.05rem;margin-bottom:4px;">${item.nombre}</h2>
-          <p style="color:var(--text-muted);margin-bottom:16px;">${item.cal} kcal por ${item.serving || 'porción'}</p>
+          <p style="color:var(--text-muted);margin-bottom:16px;">${m.cal} kcal por ${medidaSel === 'porcion' ? (base.serving || 'porción') : m.label}</p>
           <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:18px;">
             <button id="qty-dec" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">−</button>
-            <input id="qty-val" type="number" step="0.25" min="0.25" value="${qty}" style="font-size:1.6rem;font-weight:800;width:84px;text-align:center;background:var(--bg-input);border:1.5px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;">
+            <input id="qty-val" type="number" step="${medidaSel === 'gramos' || medidaSel === 'ml' ? '1' : '0.25'}" min="${medidaSel === 'gramos' || medidaSel === 'ml' ? '1' : '0.25'}" value="${qty}" style="font-size:1.6rem;font-weight:800;width:84px;text-align:center;background:var(--bg-input);border:1.5px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;">
             <button id="qty-inc" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:1.4rem;cursor:pointer;">+</button>
           </div>
+          ${locked ? `
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">Medida: <strong style="color:var(--text-secondary);">${base.serving || 'porción'}</strong> · fija desde que se creó este alimento en "Míos".</p>
+          ` : `
           <div class="config-row" style="margin-bottom:${medidaSel === 'personalizada' ? '12' : '18'}px;">
             <label>Medida</label>
             <select id="qty-medida">
-              ${MEASURE_UNITS.map(u => `<option value="${u.id}" ${u.id === medidaSel ? 'selected' : ''}>${u.label}</option>`).join('')}
+              ${MEASURE_UNITS.filter(u => availableIds.includes(u.id)).map(u => `<option value="${u.id}" ${u.id === medidaSel ? 'selected' : ''}>${u.label}</option>`).join('')}
             </select>
           </div>
           ${medidaSel === 'personalizada' ? `
@@ -507,24 +592,33 @@ const Comidas = {
             <label>Describe la medida</label>
             <input type="text" id="qty-medida-custom" placeholder="Ej: 1 plato grande" value="${medidaCustom}">
           </div>` : ''}
+          `}
           <div style="display:flex;gap:10px;">
             <button id="qty-cancel" class="btn btn-secondary" style="flex:1;">Cancelar</button>
             <button id="qty-save" class="btn btn-primary" style="flex:1;">Guardar</button>
           </div>
         </div>
       `;
-      document.getElementById('qty-dec').onclick = () => { qty = Math.max(0.25, +(qty - 0.25).toFixed(2)); draw(); };
-      document.getElementById('qty-inc').onclick = () => { qty = +(qty + 0.25).toFixed(2); draw(); };
+      const step = medidaSel === 'gramos' || medidaSel === 'ml' ? 1 : 0.25;
+      document.getElementById('qty-dec').onclick = () => { qty = Math.max(step, +(qty - step).toFixed(2)); draw(); };
+      document.getElementById('qty-inc').onclick = () => { qty = +(qty + step).toFixed(2); draw(); };
       document.getElementById('qty-val').oninput = (e) => { qty = parseFloat(e.target.value) || qty; };
-      document.getElementById('qty-medida').onchange = (e) => { medidaSel = e.target.value; draw(); };
+      document.getElementById('qty-medida')?.addEventListener('change', (e) => {
+        medidaSel = e.target.value;
+        qty = (medidaSel === 'gramos' || medidaSel === 'ml') ? (_gramsForServing(base.serving) || 100) : 1;
+        draw();
+      });
       document.getElementById('qty-medida-custom')?.addEventListener('input', (e) => { medidaCustom = e.target.value; });
       document.getElementById('qty-cancel').onclick = () => modal.classList.remove('active');
       document.getElementById('qty-save').onclick = () => {
-        item.cantidad = Math.max(0.25, qty);
+        const finalMacros = _macrosForMeasure(base, medidaSel);
+        item.cantidad = Math.max(step, qty);
         item.medidaUnitId = medidaSel;
         item.medida = medidaSel === 'porcion' ? ''
           : medidaSel === 'personalizada' ? (medidaCustom.trim() || 'Personalizada')
-          : MEASURE_UNITS.find(u => u.id === medidaSel).label;
+          : finalMacros.label;
+        item.cal = finalMacros.cal; item.prot = finalMacros.prot; item.carb = finalMacros.carb; item.fat = finalMacros.fat;
+        item.baseCal = base.cal; item.baseProt = base.prot; item.baseCarb = base.carb; item.baseFat = base.fat; item.baseServing = base.serving;
         Storage.guardarComidas(this.fecha, registro);
         modal.classList.remove('active');
         this._render();
@@ -642,14 +736,18 @@ const Comidas = {
           const registro = Storage.obtenerComidas(this.fecha);
           if (!registro.comidas) registro.comidas = [];
           selection.forEach(entry => {
-            const medidaUnitId = entry.medidaUnitId || 'porcion';
+            const locked = entry.food.cat === 'custom';
+            const medidaUnitId = locked ? 'porcion' : (entry.medidaUnitId || 'porcion');
+            const m = _macrosForMeasure(entry.food, medidaUnitId);
             const medida = medidaUnitId === 'porcion' ? ''
               : medidaUnitId === 'personalizada' ? ((entry.medidaCustom || '').trim() || 'Personalizada')
-              : MEASURE_UNITS.find(u => u.id === medidaUnitId).label;
+              : m.label;
             registro.comidas.push({
-              id: Date.now() + Math.random(), nombre: entry.food.name, cal: entry.food.cal, prot: entry.food.prot,
-              carb: entry.food.carb, fat: entry.food.fat, serving: entry.food.serving, cantidad: entry.qty, tipo,
-              medidaUnitId, medida
+              id: Date.now() + Math.random(), nombre: entry.food.name,
+              cal: m.cal, prot: m.prot, carb: m.carb, fat: m.fat,
+              baseCal: entry.food.cal, baseProt: entry.food.prot, baseCarb: entry.food.carb, baseFat: entry.food.fat,
+              serving: entry.food.serving, baseServing: entry.food.serving,
+              cantidad: entry.qty, tipo, medidaUnitId, medida, medidaLocked: locked
             });
           });
           Storage.guardarComidas(this.fecha, registro);
@@ -664,11 +762,16 @@ const Comidas = {
       const renderReviewItems = () => {
         const wrap = document.getElementById('review-items');
         if (!wrap) return;
-        wrap.innerHTML = [...selection.entries()].map(([id, entry]) => `
+        wrap.innerHTML = [...selection.entries()].map(([id, entry]) => {
+          const locked = entry.food.cat === 'custom';
+          const medidaSel = locked ? 'porcion' : (entry.medidaUnitId || 'porcion');
+          const m = _macrosForMeasure(entry.food, medidaSel);
+          const availableIds = _measuresForFood(entry.food);
+          return `
           <div class="meal-item" style="cursor:default;flex-wrap:wrap;">
             <div class="meal-item-info">
               <div class="meal-item-name">${entry.food.name}</div>
-              <div class="meal-item-detail">${entry.food.cal} kcal por ${entry.food.serving || 'porci\u00f3n'}</div>
+              <div class="meal-item-detail">${m.cal} kcal por ${medidaSel === 'porcion' ? (entry.food.serving || 'porci\u00f3n') : m.label}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
               <button class="rev-qty-dec" data-id="${id}" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);cursor:pointer;">\u2212</button>
@@ -676,30 +779,37 @@ const Comidas = {
               <button class="rev-qty-inc" data-id="${id}" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--bg-input);color:var(--text-primary);cursor:pointer;">+</button>
               <button class="rev-remove" data-id="${id}" title="Quitar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;display:flex;"><i data-lucide="x" style="width:16px;height:16px;pointer-events:none;"></i></button>
             </div>
+            ${locked ? `
+            <div style="width:100%;font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Medida: <strong style="color:var(--text-secondary);">${entry.food.serving || 'porci\u00f3n'}</strong> \u00b7 fija (alimento personalizado)</div>
+            ` : `
             <div style="width:100%;display:flex;gap:8px;align-items:center;margin-top:8px;">
               <select class="rev-medida" data-id="${id}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.78rem;">
-                ${MEASURE_UNITS.map(u => `<option value="${u.id}" ${u.id === (entry.medidaUnitId || 'porcion') ? 'selected' : ''}>${u.label}</option>`).join('')}
+                ${MEASURE_UNITS.filter(u => availableIds.includes(u.id)).map(u => `<option value="${u.id}" ${u.id === medidaSel ? 'selected' : ''}>${u.label}</option>`).join('')}
               </select>
-              ${entry.medidaUnitId === 'personalizada' ? `<input type="text" class="rev-medida-custom" data-id="${id}" placeholder="Ej: 1 plato grande" value="${entry.medidaCustom || ''}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.78rem;">` : ''}
+              ${medidaSel === 'personalizada' ? `<input type="text" class="rev-medida-custom" data-id="${id}" placeholder="Ej: 1 plato grande" value="${entry.medidaCustom || ''}" style="flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.78rem;">` : ''}
             </div>
+            `}
           </div>
-        `).join('');
+        `; }).join('');
         Icons.init(wrap);
         renderReviewFooter();
 
         wrap.querySelectorAll('.rev-qty-dec').forEach(b => b.onclick = () => {
           const e = selection.get(b.dataset.id); if (!e) return;
-          e.qty = Math.max(0.25, +(e.qty - 0.25).toFixed(2));
+          const step = (e.medidaUnitId === 'gramos' || e.medidaUnitId === 'ml') ? 1 : 0.25;
+          e.qty = Math.max(step, +(e.qty - step).toFixed(2));
           renderReviewItems();
         });
         wrap.querySelectorAll('.rev-qty-inc').forEach(b => b.onclick = () => {
           const e = selection.get(b.dataset.id); if (!e) return;
-          e.qty = +(e.qty + 0.25).toFixed(2);
+          const step = (e.medidaUnitId === 'gramos' || e.medidaUnitId === 'ml') ? 1 : 0.25;
+          e.qty = +(e.qty + step).toFixed(2);
           renderReviewItems();
         });
         wrap.querySelectorAll('.rev-medida').forEach(sel => sel.onchange = () => {
           const e = selection.get(sel.dataset.id); if (!e) return;
           e.medidaUnitId = sel.value;
+          e.qty = (sel.value === 'gramos' || sel.value === 'ml') ? (_gramsForServing(e.food.serving) || 100) : 1;
           renderReviewItems();
         });
         wrap.querySelectorAll('.rev-medida-custom').forEach(inp => inp.addEventListener('input', () => {
@@ -812,7 +922,8 @@ const Comidas = {
       if (!registro.comidas) registro.comidas = [];
       registro.comidas.push({
         id: Date.now(),
-        nombre: name, cal, prot, carb, fat, serving, cantidad: 1, tipo
+        nombre: name, cal, prot, carb, fat, baseCal: cal, baseProt: prot, baseCarb: carb, baseFat: fat,
+        serving, baseServing: serving, cantidad: 1, tipo, medidaUnitId: 'porcion', medida: '', medidaLocked: true
       });
       Storage.guardarComidas(this.fecha, registro);
       overlay.classList.remove('active', 'full');
