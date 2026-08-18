@@ -318,8 +318,8 @@ const App = {
     const el = document.getElementById('today-workout-container');
     if (!el) return;
     if (typeof Routines === 'undefined') { el.innerHTML = ''; return; }
-    const rutinaHoy = Routines.getTodayRoutine();
-    if (!rutinaHoy) {
+    const todayEntry = typeof Routines.getTodayEntry === 'function' ? Routines.getTodayEntry() : (Routines.getTodayRoutine() ? { type: 'routine', item: Routines.getTodayRoutine() } : null);
+    if (!todayEntry) {
       el.innerHTML = `
         <div class="hero-card" style="background:var(--bg-card);border-color:var(--border);text-align:center;">
           <div style="width:48px;height:48px;border-radius:14px;background:var(--lime-soft);color:var(--lime);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
@@ -335,15 +335,27 @@ const App = {
       Icons.init(el);
       return;
     }
-    const last = Routines.getLastSession ? Routines.getLastSession(rutinaHoy.id) : null;
-    const vol = last ? Routines.calcVolume(last) : 0;
+    let nombre, ejercicios, vol;
+    if (todayEntry.type === 'group') {
+      const group = todayEntry.item;
+      const members = (group.routineIds || []).map(id => Routines.getById(id)).filter(Boolean);
+      nombre = group.name || members.map(r => r.name).join(' + ');
+      ejercicios = members.reduce((s, r) => s + (r.exercises || []).length, 0);
+      vol = members.reduce((s, r) => { const l = Routines.getLastSession ? Routines.getLastSession(r.id) : null; return s + (l ? Routines.calcVolume(l) : 0); }, 0);
+    } else {
+      const rutinaHoy = todayEntry.item;
+      const last = Routines.getLastSession ? Routines.getLastSession(rutinaHoy.id) : null;
+      nombre = rutinaHoy.name;
+      ejercicios = (rutinaHoy.exercises || []).length;
+      vol = last ? Routines.calcVolume(last) : 0;
+    }
     el.innerHTML = `
       <div class="hero-card" style="background:var(--bg-card);border-color:var(--border);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Toca hoy</span>
+          <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Toca hoy${todayEntry.type === 'group' ? ' · grupo' : ''}</span>
         </div>
-        <div class="font-display" style="font-size:30px;line-height:1.05;margin-bottom:6px;">${rutinaHoy.name}</div>
-        <div class="font-mono" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">${(rutinaHoy.exercises || []).length} ejercicios${vol ? ` · último ${vol.toLocaleString()} kg` : ''}</div>
+        <div class="font-display" style="font-size:30px;line-height:1.05;margin-bottom:6px;">${nombre}</div>
+        <div class="font-mono" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">${ejercicios} ejercicios${vol ? ` · último ${Routines._fmtVol(vol)}` : ''}</div>
         <a href="ejercicios.html#fuerza" class="btn-lime glow" style="width:100%;height:56px;border-radius:16px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;">
           <i data-lucide="play" style="width:19px;height:19px"></i>Empezar
         </a>

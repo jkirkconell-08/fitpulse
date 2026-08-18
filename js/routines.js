@@ -133,7 +133,7 @@ const Routines = {
 
   create(data) {
     const routine = {
-      id: 'routine_' + Date.now(),
+      id: 'routine_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       name: data.name || 'Nueva Rutina',
       icon: data.icon || 'dumbbell',
       gradient: data.gradient || 'cat-blue',
@@ -153,6 +153,75 @@ const Routines = {
     const all = this.getAll().filter(r => r.id !== id);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(all));
     if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
+  },
+
+  /* ---- Grupos de rutina ----
+     Para días donde se combinan 2+ rutinas (ej. Pecho + Tríceps, Hombro +
+     Tríceps) sin duplicar el trabajo de tríceps en cada una: el grupo solo
+     referencia las rutinas individuales existentes y, al ejecutarlo, las
+     encadena en una sola sesión. El grupo asignado al día de hoy SIEMPRE
+     tiene prioridad sobre una rutina individual asignada al mismo día. */
+  GROUP_KEY: 'fitpulse_routine_groups',
+
+  getAllGroups() {
+    try { return JSON.parse(localStorage.getItem(this.GROUP_KEY) || '[]'); } catch { return []; }
+  },
+
+  getGroupById(id) {
+    return this.getAllGroups().find(g => g.id === id) || null;
+  },
+
+  saveGroup(group) {
+    const all = this.getAllGroups();
+    const idx = all.findIndex(g => g.id === group.id);
+    if (idx >= 0) all[idx] = group; else all.push(group);
+    localStorage.setItem(this.GROUP_KEY, JSON.stringify(all));
+    if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
+    return group;
+  },
+
+  createGroup(data) {
+    const group = {
+      id: 'group_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      name: data.name || '',
+      icon: data.icon || 'layers',
+      routineIds: data.routineIds || [],
+      dias: data.dias || []
+    };
+    return this.saveGroup(group);
+  },
+
+  updateGroup(id, changes) {
+    const group = this.getGroupById(id);
+    if (!group) return null;
+    return this.saveGroup({ ...group, ...changes });
+  },
+
+  deleteGroup(id) {
+    const all = this.getAllGroups().filter(g => g.id !== id);
+    localStorage.setItem(this.GROUP_KEY, JSON.stringify(all));
+    if (typeof Storage !== 'undefined' && Storage._syncToCloud) Storage._syncToCloud();
+  },
+
+  _groupDoneToday(g) {
+    const ids = g.routineIds || [];
+    if (!ids.length) return false;
+    return ids.every(rid => this.getSessions(rid).some(s => {
+      const d = new Date(s.endedAt || s.startedAt);
+      const f = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return f === Storage.today();
+    }));
+  },
+
+  /* Grupo o rutina "de hoy" — el grupo SIEMPRE prevalece si hay uno asignado
+     al día de hoy (con al menos 2 rutinas); si no hay grupo, cae a la
+     recomendación normal por rutina individual (getTodayRoutine). */
+  getTodayEntry() {
+    const weekday = new Date().getDay();
+    const group = this.getAllGroups().find(g => (g.dias || []).includes(weekday) && (g.routineIds || []).length >= 2);
+    if (group) return { type: 'group', item: group };
+    const routine = this.getTodayRoutine();
+    return routine ? { type: 'routine', item: routine } : null;
   },
 
   /* ---- Historial de sesiones (todas las rutinas) ---- */
@@ -207,10 +276,11 @@ const Routines = {
       return;
     }
 
-    const rutinaHoy = this.getTodayRoutine();
+    const todayEntry = this.getTodayEntry();
+    const groups = this.getAllGroups();
 
     container.innerHTML = `
-      ${rutinaHoy ? this._heroCard(rutinaHoy, all) : ''}
+      ${todayEntry ? (todayEntry.type === 'group' ? this._heroCardGroup(todayEntry.item) : this._heroCard(todayEntry.item, all)) : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 4px 12px;">
         <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Mi programa · ${all.length} rutina${all.length === 1 ? '' : 's'}</span>
         <button id="btn-new-routine" style="width:34px;height:34px;border-radius:11px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;">
@@ -220,10 +290,26 @@ const Routines = {
       <div style="display:flex;flex-direction:column;gap:8px;" id="routines-list">
         ${all.map(r => this._routineRow(r)).join('')}
       </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 4px 8px;">
+        <span class="font-mono" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);">Grupos de rutina · ${groups.length}</span>
+        <button id="btn-new-group" style="width:34px;height:34px;border-radius:11px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="plus" style="width:17px;height:17px;"></i>
+        </button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin:0 4px 12px;">Une rutinas que compartes el mismo día (ej. Pecho + Tríceps) para no repetir ejercicios — al empezar la sesión del grupo se hacen todas seguidas.</div>
+      ${groups.length === 0
+        ? `<div style="font-size:13px;color:var(--text-dim);padding:0 4px 4px;">${all.length < 2 ? 'Crea al menos 2 rutinas para poder agruparlas.' : 'Aún no tienes grupos.'}</div>`
+        : `<div style="display:flex;flex-direction:column;gap:8px;" id="groups-list">${groups.map(g => this._groupRow(g)).join('')}</div>`}
     `;
 
     document.getElementById('btn-new-routine').addEventListener('click', () => this.openEditor(null));
-    document.getElementById('btn-start-today')?.addEventListener('click', () => this.startSession(rutinaHoy.id));
+    document.getElementById('btn-new-group').addEventListener('click', () => this.openGroupEditor(null));
+    document.getElementById('btn-start-today')?.addEventListener('click', () => {
+      if (!todayEntry) return;
+      if (todayEntry.type === 'group') this.startGroupSession(todayEntry.item.id);
+      else this.startSession(todayEntry.item.id);
+    });
 
     Icons.init(container);
     container.querySelectorAll('.routine-edit-btn').forEach(btn => {
@@ -241,6 +327,22 @@ const Routines = {
     });
     container.querySelectorAll('.routine-row[data-id]').forEach(row => {
       row.addEventListener('click', () => this.openDetail(row.dataset.id));
+    });
+    container.querySelectorAll('.group-edit-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); this.openGroupEditor(btn.dataset.gid); });
+    });
+    container.querySelectorAll('.group-del-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation();
+        if (confirm('¿Eliminar este grupo? Las rutinas que lo forman no se eliminan.')) {
+          this.deleteGroup(btn.dataset.gid);
+          this._render();
+          if (typeof showToast === 'function') showToast('Grupo eliminado');
+        }
+      });
+    });
+    container.querySelectorAll('.routine-row[data-gid]').forEach(row => {
+      row.addEventListener('click', () => this.openGroupDetail(row.dataset.gid));
     });
   },
 
@@ -278,6 +380,59 @@ const Routines = {
         <button id="btn-start-today" class="btn-lime" style="width:100%;height:56px;border:none;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:800;">
           <i data-lucide="play" style="width:19px;height:19px;"></i>Empezar sesión
         </button>
+      </div>
+    `;
+  },
+
+  _heroCardGroup(g) {
+    const members = (g.routineIds || []).map(id => this.getById(id)).filter(Boolean);
+    const totalEjercicios = members.reduce((s, r) => s + (r.exercises || []).length, 0);
+    const totalSeries = members.reduce((s, r) => s + (r.exercises || []).reduce((s2, e) => s2 + (parseInt(e.sets) || 0), 0), 0);
+    const vol = members.reduce((s, r) => { const last = this.getLastSession(r.id); return s + (last ? this.calcVolume(last) : 0); }, 0);
+    const nombre = g.name || members.map(r => r.name).join(' + ') || 'Grupo';
+    return `
+      <div class="hero-card" style="background:linear-gradient(150deg,#1B1626,var(--bg-card) 65%);border-color:#2E2640;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span class="hero-streak-dot" style="background:var(--lime);"></span>
+          <span class="font-mono" style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--lime);">HOY · GRUPO</span>
+        </div>
+        <div class="font-display" style="font-size:30px;line-height:1.05;margin-bottom:4px;">${nombre}</div>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px;">${members.map(r => r.name).join(' + ')}</div>
+        <div style="display:flex;gap:20px;margin-bottom:18px;">
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">EJERCICIOS</div><div class="font-display" style="font-weight:800;font-size:20px;">${totalEjercicios}</div></div>
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">SERIES</div><div class="font-display" style="font-weight:800;font-size:20px;">${totalSeries}</div></div>
+          <div><div class="font-mono" style="font-size:10px;color:var(--text-muted);">ÚLTIMO VOL.</div><div class="font-display" style="font-weight:800;font-size:20px;">${vol ? this._fmtVol(vol) : '—'}</div></div>
+        </div>
+        <button id="btn-start-today" class="btn-lime" style="width:100%;height:56px;border:none;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:800;">
+          <i data-lucide="play" style="width:19px;height:19px;"></i>Empezar sesión
+        </button>
+      </div>
+    `;
+  },
+
+  _groupRow(g) {
+    const members = (g.routineIds || []).map(id => this.getById(id)).filter(Boolean);
+    const doneToday = this._groupDoneToday(g);
+    const diasArr = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+    const diasLbl = (g.dias || []).length ? [...(g.dias || [])].sort().map(d => diasArr[d]).join(' ') : 'Sin días asignados';
+    return `
+      <div class="routine-row" data-gid="${g.id}" style="display:flex;align-items:center;gap:13px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:15px 16px;cursor:pointer;">
+        <span style="flex:none;width:34px;height:34px;border-radius:11px;background:${doneToday ? 'rgba(48,209,88,.14)' : 'var(--bg-input)'};display:flex;align-items:center;justify-content:center;">
+          <i data-lucide="${doneToday ? 'check' : 'layers'}" style="width:17px;height:17px;color:${doneToday ? '#30D158' : 'var(--text-secondary)'};"></i>
+        </span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:16px;font-weight:700;">${g.name || members.map(r => r.name).join(' + ') || 'Grupo'}</div>
+          <div class="font-mono" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${members.map(r => r.name).join(' + ') || 'Sin rutinas'} · ${diasLbl}</div>
+        </div>
+        <button class="group-edit-btn" data-gid="${g.id}"
+          style="flex:none;background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);width:32px;height:32px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="group-del-btn" data-gid="${g.id}"
+          style="flex:none;background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);width:32px;height:32px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </button>
+        <i data-lucide="chevron-right" style="width:19px;height:19px;color:var(--text-dim);flex:none;"></i>
       </div>
     `;
   },
@@ -365,6 +520,155 @@ const Routines = {
     };
   },
 
+  openGroupDetail(id) {
+    const group = this.getGroupById(id);
+    if (!group) return;
+    const overlay = document.getElementById('routine-overlay');
+    if (!overlay) return;
+
+    const members = (group.routineIds || []).map(rid => this.getById(rid)).filter(Boolean);
+    const totalEjercicios = members.reduce((s, r) => s + (r.exercises || []).length, 0);
+
+    overlay.innerHTML = `
+      <div class="overlay-content" style="overflow-y:auto;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;font-weight:800;">${group.name || members.map(r => r.name).join(' + ')}</h2>
+          <button id="detail-close" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size:0.78rem;color:var(--brand-light);font-weight:600;margin-bottom:14px;padding:8px 12px;background:rgba(124,58,237,0.1);border-radius:10px;">
+          ${totalEjercicios} ejercicios en total · ${members.length} rutinas agrupadas
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          ${members.map(r => `
+            <div>
+              <div style="font-weight:700;font-size:0.92rem;margin-bottom:8px;">${r.name}</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                ${r.exercises.map((ex, i) => `
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-input);border-radius:12px;">
+                    <div style="width:32px;height:32px;background:linear-gradient(135deg,#4776E6,#8E54E9);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.8rem;flex-shrink:0;">${i+1}</div>
+                    <div style="flex:1;">
+                      <div style="font-weight:700;font-size:0.88rem;">${ex.name}</div>
+                      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${ex.sets} series × ${ex.reps} reps · ${ex.rest}s descanso</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <button id="btn-start-group" class="btn btn-primary btn-full" style="margin-top:20px;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Iniciar sesión de gym
+        </button>
+      </div>
+    `;
+
+    overlay.classList.add('active', 'full');
+    Icons.init();
+    document.getElementById('detail-close').onclick = () => overlay.classList.remove('active', 'full');
+    document.getElementById('btn-start-group').onclick = () => {
+      overlay.classList.remove('active', 'full');
+      this.startGroupSession(id);
+    };
+  },
+
+  /* ---- Editor de grupo ---- */
+
+  openGroupEditor(id) {
+    const group = id ? this.getGroupById(id) : null;
+    const isNew = !group;
+    const allRoutines = this.getAll();
+    const overlay = document.getElementById('routine-overlay');
+
+    let selectedRoutineIds = [...(group?.routineIds || [])];
+    let selectedDias = [...(group?.dias || [])];
+
+    overlay.innerHTML = `
+      <div class="overlay-content" style="overflow-y:auto;overflow-x:hidden;text-align:left;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1.1rem;font-weight:800;">${isNew ? 'Nuevo Grupo' : 'Editar Grupo'}</h2>
+          <button id="group-editor-close" style="background:none;border:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;"><i data-lucide="x" style="width:22px;height:22px;"></i></button>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Une rutinas que haces el mismo día (ej. Pecho + Tríceps) para no repetir ejercicios compartidos — al empezar la sesión se hacen todas seguidas.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Nombre (opcional)</label>
+            <input id="gr-name" type="text" value="${group?.name || ''}" placeholder="Ej: Pecho + Tríceps"
+              style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg-input);color:var(--text-primary);font-family:inherit;font-size:0.95rem;outline:none;">
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">Si lo dejas vacío, se usa el nombre de las rutinas incluidas.</div>
+          </div>
+          <div>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Rutinas incluidas</label>
+            ${allRoutines.length === 0 ? `<div style="font-size:0.85rem;color:var(--text-dim);">Primero crea al menos una rutina.</div>` : `
+            <div style="display:flex;flex-direction:column;gap:8px;" id="gr-routine-checks">
+              ${allRoutines.map(r => `
+                <label style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1.5px solid ${selectedRoutineIds.includes(r.id) ? '#7C3AED' : 'var(--border)'};background:${selectedRoutineIds.includes(r.id) ? 'rgba(124,58,237,0.12)' : 'var(--bg-input)'};cursor:pointer;">
+                  <input type="checkbox" class="gr-routine-check" data-rid="${r.id}" ${selectedRoutineIds.includes(r.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:#7C3AED;">
+                  <span style="flex:1;font-size:0.9rem;font-weight:600;">${r.name}</span>
+                  <span class="font-mono" style="font-size:11px;color:var(--text-muted);">${(r.exercises || []).length} ejerc.</span>
+                </label>
+              `).join('')}
+            </div>`}
+          </div>
+          <div>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Días</label>
+            <div style="display:flex;gap:6px;" id="gr-dias">
+              ${['D','L','M','X','J','V','S'].map((d,i) => `
+                <button class="gr-dia-btn" data-dia="${i}"
+                  style="flex:1;padding:10px 0;border-radius:10px;border:1.5px solid ${selectedDias.includes(i)?'#7C3AED':'var(--border)'};background:${selectedDias.includes(i)?'rgba(124,58,237,0.2)':'var(--bg-input)'};color:${selectedDias.includes(i)?'#A78BFA':'var(--text-muted)'};font-weight:700;font-size:0.78rem;cursor:pointer;transition:all 0.15s;">${d}</button>
+              `).join('')}
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px;">El grupo siempre tiene prioridad sobre rutinas individuales asignadas al mismo día.</div>
+          </div>
+        </div>
+        <button id="btn-save-group" class="btn btn-primary btn-full" style="margin-top:24px;">
+          ${isNew ? 'Crear Grupo' : 'Guardar Cambios'}
+        </button>
+      </div>
+    `;
+
+    overlay.classList.add('active', 'full');
+    Icons.init();
+
+    overlay.querySelectorAll('.gr-routine-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const rid = cb.dataset.rid;
+        if (cb.checked) { if (!selectedRoutineIds.includes(rid)) selectedRoutineIds.push(rid); }
+        else selectedRoutineIds = selectedRoutineIds.filter(x => x !== rid);
+        const label = cb.closest('label');
+        label.style.borderColor = cb.checked ? '#7C3AED' : 'var(--border)';
+        label.style.background  = cb.checked ? 'rgba(124,58,237,0.12)' : 'var(--bg-input)';
+      });
+    });
+
+    overlay.querySelectorAll('.gr-dia-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dia = parseInt(btn.dataset.dia);
+        if (selectedDias.includes(dia)) selectedDias = selectedDias.filter(d => d !== dia);
+        else selectedDias.push(dia);
+        btn.style.borderColor = selectedDias.includes(dia) ? '#7C3AED' : 'var(--border)';
+        btn.style.background  = selectedDias.includes(dia) ? 'rgba(124,58,237,0.2)' : 'var(--bg-input)';
+        btn.style.color       = selectedDias.includes(dia) ? '#A78BFA' : 'var(--text-muted)';
+      });
+    });
+
+    document.getElementById('btn-save-group').addEventListener('click', () => {
+      if (selectedRoutineIds.length < 2) {
+        if (typeof showToast === 'function') showToast('Elige al menos 2 rutinas para formar un grupo', 'warning');
+        return;
+      }
+      const name = document.getElementById('gr-name').value.trim();
+      const data = { name, routineIds: selectedRoutineIds, dias: selectedDias, icon: 'layers' };
+      if (isNew) this.createGroup(data);
+      else this.updateGroup(id, data);
+      overlay.classList.remove('active', 'full');
+      this._render();
+      if (typeof showToast === 'function') showToast(isNew ? 'Grupo creado' : 'Cambios guardados');
+    });
+
+    document.getElementById('group-editor-close').onclick = () => overlay.classList.remove('active', 'full');
+  },
+
   /* ============================================================
      WORKOUT SESSION — step-by-step set tracker
      ============================================================ */
@@ -386,8 +690,55 @@ const Routines = {
         targetReps: String(ex.reps),
         restSeconds: parseInt(ex.rest) || 60,
         weight: ex.weight || 0,
-        sets: []
+        sets: [],
+        _routineId: routineId
       })),
+      currentEx: 0,
+      currentSet: 0
+    };
+
+    this._renderSession(session);
+  },
+
+  /* Sesión de un GRUPO: encadena los ejercicios de todas sus rutinas
+     miembro en una sola sesión continua (sin repetir la pantalla de
+     "sesión completada" entre una y otra). Cada ejercicio recuerda de qué
+     rutina viene (_routineId) para que el PR/peso sugerido y el guardado
+     final sigan siendo correctos por rutina individual. */
+  startGroupSession(groupId) {
+    const group = this.getGroupById(groupId);
+    if (!group) return;
+    const members = (group.routineIds || []).map(id => this.getById(id)).filter(Boolean);
+    if (members.length === 0) {
+      if (typeof showToast === 'function') showToast('Las rutinas de este grupo ya no existen', 'warning');
+      return;
+    }
+    const exercises = [];
+    members.forEach(r => {
+      (r.exercises || []).forEach(ex => {
+        exercises.push({
+          name: ex.name,
+          targetSets: parseInt(ex.sets) || 3,
+          targetReps: String(ex.reps),
+          restSeconds: parseInt(ex.rest) || 60,
+          weight: ex.weight || 0,
+          sets: [],
+          _routineId: r.id
+        });
+      });
+    });
+    if (exercises.length === 0) {
+      if (typeof showToast === 'function') showToast('Este grupo no tiene ejercicios', 'warning');
+      return;
+    }
+
+    const session = {
+      groupId: group.id,
+      groupName: group.name || members.map(r => r.name).join(' + '),
+      routineName: group.name || members.map(r => r.name).join(' + '),
+      routineIds: members.map(r => r.id),
+      startedAt: Date.now(),
+      exercises,
       currentEx: 0,
       currentSet: 0
     };
@@ -448,7 +799,7 @@ const Routines = {
     const totalEx   = s.exercises.length;
     const targetMin = parseInt(ex.targetReps.split('-')[0]) || 10;
     const lastSet   = ex.sets[ex.sets.length - 1];
-    const best      = this._bestSetForExercise(s.routineId, ex.name);
+    const best      = this._bestSetForExercise(ex._routineId || s.routineId, ex.name);
     // Arranca con el peso/reps mas altos que se hayan hecho en la sesion (si ya
     // hay una serie hecha) o, si es la primera serie de este ejercicio, con el
     // mejor registro historico (no con la plantilla de la rutina) — asi la app
@@ -699,14 +1050,24 @@ const Routines = {
     s.exercises.forEach(ex => { totalSets += ex.sets.length; });
 
     const volume = this.calcVolume({ exercises: s.exercises });
-    const last = this.getLastSession(s.routineId);
-    const lastVolume = last ? this.calcVolume(last) : 0;
+    // Para un grupo no hay "sesión anterior" única — se compara contra la
+    // suma del último volumen de cada rutina miembro (cada una por separado).
+    let lastVolume = 0;
+    if (s.groupId) {
+      [...new Set(s.routineIds || [])].forEach(rid => {
+        const l = this.getLastSession(rid);
+        if (l) lastVolume += this.calcVolume(l);
+      });
+    } else {
+      const last = this.getLastSession(s.routineId);
+      lastVolume = last ? this.calcVolume(last) : 0;
+    }
     const vsAnteriorPct = lastVolume > 0 ? Math.round(((volume - lastVolume) / lastVolume) * 100) : null;
 
     // Récord personal: mejor serie (peso x reps) de algún ejercicio de esta sesión vs. su histórico
     let prDetail = null;
     s.exercises.forEach(ex => {
-      const priorBest = this._bestSetForExercise(s.routineId, ex.name);
+      const priorBest = this._bestSetForExercise(ex._routineId || s.routineId, ex.name);
       ex.sets.forEach(st => {
         if (!st.weightDone || !st.repsDone) return;
         const beatsIt = !priorBest || st.weightDone > priorBest.weight || (st.weightDone === priorBest.weight && st.repsDone > priorBest.reps);
@@ -716,7 +1077,11 @@ const Routines = {
       });
     });
 
-    const priorSessions = this.getSessions(s.routineId);
+    // Tendencia de volumen: para un grupo se combina el historial de todas
+    // sus rutinas miembro (aproximado — no hay un "historial de grupo" propio).
+    const priorSessions = s.groupId
+      ? [...new Set(s.routineIds || [])].flatMap(rid => this.getSessions(rid)).sort((a, b) => (b.endedAt || b.startedAt || 0) - (a.endedAt || a.startedAt || 0))
+      : this.getSessions(s.routineId);
     const last6 = priorSessions.slice(0, 5).map(sess => this.calcVolume(sess)).reverse();
     last6.push(volume);
     const maxVol = Math.max(...last6, 1);
@@ -772,13 +1137,39 @@ const Routines = {
     });
 
     document.getElementById('sess-finish').onclick = () => {
-      this.saveSession({
-        routineId: s.routineId,
-        routineName: s.routineName,
-        startedAt: s.startedAt,
-        endedAt: Date.now(),
-        exercises: s.exercises
-      });
+      if (s.groupId) {
+        // Se guarda una sesión normal POR CADA rutina miembro (con sus
+        // propios ejercicios) para que "última sesión"/PR/volumen de cada
+        // rutina individual sigan funcionando igual que si se hubiera
+        // hecho por separado — el grupo solo fue la forma de encadenarlas.
+        const endedAt = Date.now();
+        const byRoutine = {};
+        s.exercises.forEach(ex => {
+          const rid = ex._routineId;
+          if (!rid) return;
+          (byRoutine[rid] = byRoutine[rid] || []).push(ex);
+        });
+        Object.keys(byRoutine).forEach(rid => {
+          const r = this.getById(rid);
+          this.saveSession({
+            routineId: rid,
+            routineName: r ? r.name : 'Rutina',
+            startedAt: s.startedAt,
+            endedAt,
+            exercises: byRoutine[rid],
+            groupId: s.groupId,
+            groupName: s.groupName
+          });
+        });
+      } else {
+        this.saveSession({
+          routineId: s.routineId,
+          routineName: s.routineName,
+          startedAt: s.startedAt,
+          endedAt: Date.now(),
+          exercises: s.exercises
+        });
+      }
       try {
         const today = Storage.today();
         const dia = Storage.obtenerDia(today) || { fecha: today, checklist: {}, nota: '', cumplimiento: 0 };
